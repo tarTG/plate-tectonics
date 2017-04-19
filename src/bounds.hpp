@@ -34,6 +34,18 @@
 /// Plate bounds.
 class Bounds
 {
+    
+private:
+    
+    const WorldDimension _worldDimension;
+    Platec::Point2D<float_t> _position;
+    Dimension _dimension;
+    
+    /// Return a rectangle representing the Bounds inside the world.
+    Platec::Rectangle asRect() const;
+
+
+    
 public:
 
     /// @param worldDimension dimension of the world containing the plate
@@ -58,10 +70,16 @@ public:
     uint32_t height() const;
     
     /// Left position of the Plate in world coordinates.
-    uint32_t leftAsUint() const;
+    uint32_t left() const;
     
     /// Top position of the Plate in world coordinates.
-    uint32_t topAsUint() const;
+    uint32_t top() const;
+    
+    /// Right position of the Plate in world coordinates.
+    uint32_t right() const;
+    
+    /// Bottom position of the Plate in world coordinates.
+    uint32_t bottom() const;
     
     /// First point NOT part of the plate (on the right).
     /// It is expressed in world coordinates.    
@@ -72,7 +90,7 @@ public:
     uint32_t bottomAsUintNonInclusive() const;
     
     /// Given a point in World relative coordinates, it tells if it is part of the plate or not.   
-    bool containsWorldPoint(uint32_t x, uint32_t y) const;
+    bool containsWorldPoint(const Platec::Point2D<uint32_t>& p) const;
     
     /// Given a point in plate relative coordinates, it tells if it is part of the plate or not.    
     bool isInLimits(const Platec::Point2D<uint32_t>& p) const;
@@ -107,14 +125,6 @@ public:
     /// @return             Offset in height map    
     uint32_t getMapIndex(uint32_t* x, uint32_t* y) const;
 
-private:
-
-    /// Return a rectangle representing the Bounds inside the world.
-    Platec::Rectangle asRect() const;
-
-    const WorldDimension _worldDimension;
-    Platec::Point2D<float_t> _position;
-    Dimension _dimension;
 };
 
 #endif

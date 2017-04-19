@@ -48,24 +48,37 @@ uint32_t Bounds::height() const {
     return _dimension.getHeight();
 }
 
-uint32_t Bounds::leftAsUint() const {
+uint32_t Bounds::left() const {
     return static_cast<uint32_t>(_position.x());
 }
 
-uint32_t Bounds::topAsUint() const {
+uint32_t Bounds::top() const {
     return static_cast<uint32_t>(_position.y());
 }
 
+uint32_t Bounds::bottom() const {
+    return top()+ height();
+}
+
+uint32_t Bounds::right() const {
+     return  left()+ width();
+}
+
+
 uint32_t Bounds::rightAsUintNonInclusive() const {
-    return leftAsUint() + width() - 1;
+    return right() - 1;
 }
 
 uint32_t Bounds::bottomAsUintNonInclusive() const {
-    return topAsUint() + height() - 1;
+    return bottom() - 1;
 }
 
-bool Bounds::containsWorldPoint(uint32_t x, uint32_t y) const {
-    return asRect().contains(x, y);
+bool Bounds::containsWorldPoint(const Platec::Point2D<uint32_t>& p) const 
+{
+    const Platec::Point2D<uint32_t> tmp = _worldDimension.normalize(p);    
+        return tmp.x() >= left() && tmp.x() < right()
+               && tmp.y() >= top()  && tmp.y() < bottom();
+
 }
 
 bool Bounds::isInLimits(const Platec::Point2D<uint32_t>& p) const {
@@ -93,13 +106,9 @@ void Bounds::grow(const Platec::Vector2D<uint32_t>& delta) {
            + " world height=" + Platec::to_string(_worldDimension.getHeight()));
 }
 
-Platec::Rectangle Bounds::asRect() const {
-    const uint32_t ilft = leftAsUint();
-    const uint32_t itop = topAsUint();
-    const uint32_t irgt = ilft + _dimension.getWidth();
-    const uint32_t ibtm = itop + _dimension.getHeight();
-
-    return Platec::Rectangle(_worldDimension, ilft, irgt, itop, ibtm);
+Platec::Rectangle Bounds::asRect() const 
+{
+    return Platec::Rectangle(_worldDimension, left(), right(), top(), bottom());
 }
 
 uint32_t Bounds::getMapIndex(uint32_t* px, uint32_t* py) const {

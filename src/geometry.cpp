@@ -55,8 +55,7 @@ uint32_t WorldDimension::yMod(const uint32_t y) const
 
 Platec::Point2D<uint32_t>  WorldDimension::normalize(const Platec::Point2D<uint32_t>& point) const
 {
-   return Platec::Point2D<uint32_t>( (point.x() >= getWidth()) ? point.x()-getWidth() : point.x(),
-                                      (point.y() >= getHeight()) ? point.y() -getHeight() : point.y() );
+   return Platec::Point2D<uint32_t>( xMod(point.x()),yMod(point.y()) );
 }
 
 uint32_t Dimension::indexOf(const uint32_t x, const uint32_t y) const
@@ -122,8 +121,7 @@ Platec::Point2D<uint32_t> WorldDimension::yMod(const Platec::Point2D<uint32_t>& 
 
 Platec::Point2D<uint32_t> WorldDimension::pointMod(const Platec::Point2D<uint32_t>& point) const 
 {
-    return Platec::Point2D<uint32_t>(point.x()>= getWidth() ? point.x()-getWidth(): point.x(),
-                                    point.y()>= getHeight() ? point.y()-getHeight() : point.y());
+    return Platec::Point2D<uint32_t>(xMod(point.x()),yMod(point.y()));
 }
 
 

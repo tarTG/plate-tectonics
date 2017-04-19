@@ -49,12 +49,12 @@ TEST(Bounds, Height)
 
 TEST(Bounds, LeftAsUint)
 {
-    EXPECT_EQ(10, b.leftAsUint());
+    EXPECT_EQ(10, b.left());
 }
 
 TEST(Bounds, TopAsUint)
 {
-    EXPECT_EQ(48, b.topAsUint());
+    EXPECT_EQ(48, b.top());
 }
 
 TEST(Bounds, RightAsUintNonInclusive)
@@ -70,36 +70,36 @@ TEST(Bounds, BottomAsUintNonInclusive)
 TEST(Bounds, ContainsWorldPoint)
 {
     // world corners
-    EXPECT_EQ(false, b.containsWorldPoint(0, 0));
-    EXPECT_EQ(false, b.containsWorldPoint(799, 0));
-    EXPECT_EQ(false, b.containsWorldPoint(0, 599));
-    EXPECT_EQ(false, b.containsWorldPoint(799, 599));
+    EXPECT_EQ(false, b.containsWorldPoint(Platec::Point2D<uint32_t>(0, 0)));
+    EXPECT_EQ(false, b.containsWorldPoint(Platec::Point2D<uint32_t>(799, 0)));
+    EXPECT_EQ(false, b.containsWorldPoint(Platec::Point2D<uint32_t>(0, 599)));
+    EXPECT_EQ(false, b.containsWorldPoint(Platec::Point2D<uint32_t>(799, 599)));
 
     // plate corners
-    EXPECT_EQ(true, b.containsWorldPoint(10,   48));
-    EXPECT_EQ(true, b.containsWorldPoint(509,  48));
-    EXPECT_EQ(true, b.containsWorldPoint(10,  447));
-    EXPECT_EQ(true, b.containsWorldPoint(509, 447));
+    EXPECT_EQ(true, b.containsWorldPoint(Platec::Point2D<uint32_t>(10,   48)));
+    EXPECT_EQ(true, b.containsWorldPoint(Platec::Point2D<uint32_t>(509,  48)));
+    EXPECT_EQ(true, b.containsWorldPoint(Platec::Point2D<uint32_t>(10,  447)));
+    EXPECT_EQ(true, b.containsWorldPoint(Platec::Point2D<uint32_t>(509, 447)));
 
     // inside plate
-    EXPECT_EQ(true, b.containsWorldPoint(10,  48));
-    EXPECT_EQ(true, b.containsWorldPoint(120, 100));
-    EXPECT_EQ(true, b.containsWorldPoint(400, 400));
-    EXPECT_EQ(true, b.containsWorldPoint(509, 447));
+    EXPECT_EQ(true, b.containsWorldPoint(Platec::Point2D<uint32_t>(10,  48)));
+    EXPECT_EQ(true, b.containsWorldPoint(Platec::Point2D<uint32_t>(120, 100)));
+    EXPECT_EQ(true, b.containsWorldPoint(Platec::Point2D<uint32_t>(400, 400)));
+    EXPECT_EQ(true, b.containsWorldPoint(Platec::Point2D<uint32_t>(509, 447)));
 
     // outside plate
-    EXPECT_EQ(false, b.containsWorldPoint(10, 0));
-    EXPECT_EQ(false, b.containsWorldPoint(10, 47));
-    EXPECT_EQ(false, b.containsWorldPoint(10, 448));
-    EXPECT_EQ(false, b.containsWorldPoint(10, 490));
-    EXPECT_EQ(false, b.containsWorldPoint(100, 0));
-    EXPECT_EQ(false, b.containsWorldPoint(100, 47));
-    EXPECT_EQ(false, b.containsWorldPoint(100, 448));
-    EXPECT_EQ(false, b.containsWorldPoint(100, 490));
-    EXPECT_EQ(false, b.containsWorldPoint(509, 0));
-    EXPECT_EQ(false, b.containsWorldPoint(509, 47));
-    EXPECT_EQ(false, b.containsWorldPoint(509, 448));
-    EXPECT_EQ(false, b.containsWorldPoint(509, 490));
+    EXPECT_EQ(false, b.containsWorldPoint(Platec::Point2D<uint32_t>(10, 0)));
+    EXPECT_EQ(false, b.containsWorldPoint(Platec::Point2D<uint32_t>(10, 47)));
+    EXPECT_EQ(false, b.containsWorldPoint(Platec::Point2D<uint32_t>(10, 448)));
+    EXPECT_EQ(false, b.containsWorldPoint(Platec::Point2D<uint32_t>(10, 490)));
+    EXPECT_EQ(false, b.containsWorldPoint(Platec::Point2D<uint32_t>(100, 0)));
+    EXPECT_EQ(false, b.containsWorldPoint(Platec::Point2D<uint32_t>(100, 47)));
+    EXPECT_EQ(false, b.containsWorldPoint(Platec::Point2D<uint32_t>(100, 448)));
+    EXPECT_EQ(false, b.containsWorldPoint(Platec::Point2D<uint32_t>(100, 490)));
+    EXPECT_EQ(false, b.containsWorldPoint(Platec::Point2D<uint32_t>(509, 0)));
+    EXPECT_EQ(false, b.containsWorldPoint(Platec::Point2D<uint32_t>(509, 47)));
+    EXPECT_EQ(false, b.containsWorldPoint(Platec::Point2D<uint32_t>(509, 448)));
+    EXPECT_EQ(false, b.containsWorldPoint(Platec::Point2D<uint32_t>(509, 490)));
 }
 
 TEST(Bounds, IsInLimits)
@@ -126,8 +126,8 @@ TEST(Bounds, Shift)
     // topLeft = 10.2, 48.9
     bounds.shift(Platec::Vector2D<float_t>(10.7f, 100.1f));
     // now topLeft should be = 20.9, 149.0
-    EXPECT_EQ(20, bounds.leftAsUint());
-    EXPECT_EQ(149, bounds.topAsUint());
+    EXPECT_EQ(20, bounds.left());
+    EXPECT_EQ(149, bounds.top());
     // width and heigh should not be affected
     EXPECT_EQ(500, bounds.width());
     EXPECT_EQ(400, bounds.height());
@@ -142,8 +142,8 @@ TEST(Bounds, Grow)
     // height should not be affected
     EXPECT_EQ(400, bounds.height());
     // topLeft not be affected
-    EXPECT_EQ(10, bounds.leftAsUint());
-    EXPECT_EQ(48, bounds.topAsUint());
+    EXPECT_EQ(10, bounds.left());
+    EXPECT_EQ(48, bounds.top());
 
     Bounds bounds2(wd, topLeft, plateDim);
     bounds2.grow(Platec::Vector2D<uint32_t>(0, 123));
@@ -152,8 +152,8 @@ TEST(Bounds, Grow)
     // width should not be affected
     EXPECT_EQ(500, bounds2.width());
     // topLeft not be affected
-    EXPECT_EQ(10, bounds2.leftAsUint());
-    EXPECT_EQ(48, bounds2.topAsUint());
+    EXPECT_EQ(10, bounds2.left());
+    EXPECT_EQ(48, bounds2.top());
 }
 
 TEST(Bounds, GetMapIndex)

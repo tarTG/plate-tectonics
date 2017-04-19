@@ -213,10 +213,10 @@ public:
         return _bounds->height();
     }
     uint32_t  getLeftAsUint() const throw() {
-        return _bounds->leftAsUint();
+        return _bounds->left();
     }
     uint32_t  getTopAsUint() const throw() {
-        return _bounds->topAsUint();
+        return _bounds->top();
     }
     float getVelocity() const throw() {
         return _movement.getVelocity();
