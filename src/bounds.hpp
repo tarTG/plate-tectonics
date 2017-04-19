@@ -111,7 +111,8 @@ public:
     /// @param[in, out] x   Offset on the global world map along X axis.
     /// @param[in, out] y   Offset on the global world map along Y axis.
     /// @return             Offset in height map or BAD_INDEX on error.    
-    uint32_t getValidMapIndex(uint32_t* px, uint32_t* py) const;
+    std::pair<uint32_t,Platec::Point2D<uint32_t>>
+            getValidMapIndex(const Platec::Point2D<uint32_t>& p) const;
     
     /// Translate world coordinates into offset within plate's height map.
     ///
@@ -123,7 +124,7 @@ public:
     /// @param[in, out] x   Offset on the global world map along X axis.
     /// @param[in, out] y   Offset on the global world map along Y axis.
     /// @return             Offset in height map    
-    uint32_t getMapIndex(uint32_t* x, uint32_t* y) const;
+    std::pair<uint32_t,Platec::Point2D<uint32_t>> getMapIndex(const Platec::Point2D<uint32_t>& p) const;
 
 };
 

@@ -158,54 +158,54 @@ TEST(Bounds, Grow)
 
 TEST(Bounds, GetMapIndex)
 {
-    uint32_t px, py, res;
+    uint32_t px, py;
 
     px = 10;
     py = 48;
-    res = b.getMapIndex(&px, &py);
-    ASSERT_EQ(px, 0);
-    ASSERT_EQ(py, 0);
-    ASSERT_EQ(res, 0);
+    auto res = b.getMapIndex(Platec::Point2D<uint32_t>(px, py));
+    ASSERT_EQ(res.second.x(), 0);
+    ASSERT_EQ(res.second.y(), 0);
+    ASSERT_EQ(res.first, 0);
 
     px = 510;
     py =  48;
-    res = b.getMapIndex(&px, &py);
-    ASSERT_EQ(px, 510);
-    ASSERT_EQ(py, 48);
-    ASSERT_EQ(res, BAD_INDEX);
+    res = b.getMapIndex(Platec::Point2D<uint32_t>(px, py));
+    ASSERT_EQ(res.second.x(), 510);
+    ASSERT_EQ(res.second.y(), 48);
+    ASSERT_EQ(res.first, BAD_INDEX);
 
     px = 10;
     py = 448;
-    res = b.getMapIndex(&px, &py);
-    ASSERT_EQ(px, 10);
-    ASSERT_EQ(py, 448);
-    ASSERT_EQ(res, BAD_INDEX);
+    res = b.getMapIndex(Platec::Point2D<uint32_t>(px, py));
+    ASSERT_EQ(res.second.x(), 10);
+    ASSERT_EQ(res.second.y(), 448);
+    ASSERT_EQ(res.first, BAD_INDEX);
 
     px = 110;
     py = 98;
-    res = b.getMapIndex(&px, &py);
-    ASSERT_EQ(px, 100);
-    ASSERT_EQ(py, 50);
-    ASSERT_EQ(res, 25100);
+    res = b.getMapIndex(Platec::Point2D<uint32_t>(px, py));
+    ASSERT_EQ(res.second.x(), 100);
+    ASSERT_EQ(res.second.y(), 50);
+    ASSERT_EQ(res.first, 25100);
 }
 
 TEST(Bounds, GetValidMapIndex)
 {
-    uint32_t px, py, res;
+    uint32_t px, py;
 
     px = 10;
     py = 48;
-    res = b.getValidMapIndex(&px, &py);
-    ASSERT_EQ(px, 0);
-    ASSERT_EQ(py, 0);
-    ASSERT_EQ(res, 0);
+    auto res = b.getValidMapIndex(Platec::Point2D<uint32_t>(px, py));
+    ASSERT_EQ(res.second.x(), 0);
+    ASSERT_EQ(res.second.y(), 0);
+    ASSERT_EQ(res.first, 0);
 
     px = 110;
     py = 98;
-    res = b.getValidMapIndex(&px, &py);
-    ASSERT_EQ(px, 100);
-    ASSERT_EQ(py, 50);
-    ASSERT_EQ(res, 25100);
+    res = b.getValidMapIndex(Platec::Point2D<uint32_t>(px, py));
+    ASSERT_EQ(res.second.x(), 100);
+    ASSERT_EQ(res.second.y(), 50);
+    ASSERT_EQ(res.first, 25100);
 }
 
 

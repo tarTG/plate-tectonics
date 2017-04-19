@@ -27,7 +27,7 @@
 
 using namespace std;
 
-#define BAD_INDEX 0xFFFFFFFF
+const uint32_t BAD_INDEX = std::numeric_limits<uint32_t>::max();
 
 namespace Platec {
 
