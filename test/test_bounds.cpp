@@ -22,8 +22,11 @@
 
 const WorldDimension wd(800, 600);
 const Platec::Point2D<float_t> topLeft(10.2f, 48.9f);
+const Platec::Point2D<float_t> topLeftWrapping(700.4f,500.3);
 const Dimension plateDim(500, 400);
 const Bounds b(wd, topLeft, plateDim);
+const Bounds b2(wd, topLeftWrapping, plateDim);
+
 
 TEST(Bounds, Index)
 {
@@ -187,6 +190,42 @@ TEST(Bounds, GetMapIndex)
     ASSERT_EQ(res.second.x(), 100);
     ASSERT_EQ(res.second.y(), 50);
     ASSERT_EQ(res.first, 25100);
+
+    px = 750;
+    py = 550;
+    res = b2.getMapIndex(Platec::Point2D<uint32_t>(px, py));
+    ASSERT_EQ(res.second.x(), 50);
+    ASSERT_EQ(res.second.y(), 50);
+    ASSERT_EQ(res.first, 25050);
+    
+    px = 0;
+    py = 0;
+    res = b2.getMapIndex(Platec::Point2D<uint32_t>(px, py));
+    ASSERT_EQ(res.second.x(), 100);
+    ASSERT_EQ(res.second.y(), 100);
+    ASSERT_EQ(res.first, 50100);
+    
+    px = 0;
+    py = 600;
+    res = b2.getMapIndex(Platec::Point2D<uint32_t>(px, py));
+    ASSERT_EQ(res.second.x(), 100);
+    ASSERT_EQ(res.second.y(), 100);
+    ASSERT_EQ(res.first, 50100);
+   
+    px = 800;
+    py = 0;
+    res = b2.getMapIndex(Platec::Point2D<uint32_t>(px, py));
+    ASSERT_EQ(res.second.x(), 100);
+    ASSERT_EQ(res.second.y(), 100);
+    ASSERT_EQ(res.first, 50100);
+
+    px = 500;
+    py = 200;
+    res = b2.getValidMapIndex(Platec::Point2D<uint32_t>(px, py));
+    ASSERT_EQ(res.second.x(), 500);
+    ASSERT_EQ(res.second.y(), 200);
+    ASSERT_EQ(res.first, BAD_INDEX);    
+    
 }
 
 TEST(Bounds, GetValidMapIndex)
@@ -206,6 +245,8 @@ TEST(Bounds, GetValidMapIndex)
     ASSERT_EQ(res.second.x(), 100);
     ASSERT_EQ(res.second.y(), 50);
     ASSERT_EQ(res.first, 25100);
+    
+
 }
 
 

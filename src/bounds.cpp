@@ -75,9 +75,25 @@ uint32_t Bounds::bottomAsUintNonInclusive() const {
 
 bool Bounds::containsWorldPoint(const Platec::Point2D<uint32_t>& p) const 
 {
-    const auto tmp = _worldDimension.normalize(p);    
-    return tmp.x() >= left() && tmp.x() < right()
-               && tmp.y() >= top()  && tmp.y() < bottom();
+    auto bot = bottom();
+    auto rgt = right();
+    if(bottom() < top())
+        bot += _worldDimension.getHeight();
+    if(right() < left())
+        rgt += _worldDimension.getWidth();
+
+    auto tmp = Platec::Point2D<uint32_t>(p.x() % _worldDimension.getWidth(),
+                                            p.y() % _worldDimension.getHeight());
+    
+    
+
+    //check if coordinates in bounds
+    if((((tmp.x() >= left()) && (tmp.x() < rgt)) || (tmp.x() + _worldDimension.getWidth() >= left()) && (tmp.x() + _worldDimension.getWidth() < rgt)) &&
+       (( (tmp.y() >= top()) && (tmp.y() < bot)) || ((tmp.y() +_worldDimension.getHeight() >= top()) && (tmp.y() +_worldDimension.getHeight() < bot)) )  )
+    {
+        return true;
+    }
+    return false;
 
 }
 
@@ -115,24 +131,11 @@ std::pair<uint32_t,Platec::Point2D<uint32_t>>
         Bounds::getMapIndex(const Platec::Point2D<uint32_t>& p) const
 {
 
-   //Prepare coordinates.
-   //Points that has been wraped arround the world edge must be "unwraped"  
-   auto bot = bottom();
-    auto rgt = right();
-    if(bottom() < top())
-        bot += _worldDimension.getHeight();
-    if(right() < left())
-        rgt += _worldDimension.getWidth();
-
-    auto tmp = Platec::Point2D<uint32_t>(p.x() % _worldDimension.getWidth(),
-                                            p.y() % _worldDimension.getHeight());
-    
-    
-
-    //check if coordinates in bounds
-    if((((tmp.x() >= left()) && (tmp.x() < rgt)) || (tmp.x() + _worldDimension.getWidth() >= left()) && (tmp.x() + _worldDimension.getWidth() < rgt)) &&
-       (( (tmp.y() >= top()) && (tmp.y() < bot)) || ((tmp.y() +_worldDimension.getHeight() >= top()) && (tmp.y() +_worldDimension.getHeight() < bot)) )  )
+     //check if coordinates in bounds
+    if(containsWorldPoint(p)  )
     {
+       auto tmp = Platec::Point2D<uint32_t>(p.x() % _worldDimension.getWidth(),
+                                            p.y() % _worldDimension.getHeight());
        //calculate coordinates in Bounds
        const auto x = tmp.x() + ((tmp.x() < left()) ? _worldDimension.getWidth() : 0) - left();
        const auto y = tmp.y() + ((tmp.y() < top()) ? _worldDimension.getHeight() : 0) - top();
