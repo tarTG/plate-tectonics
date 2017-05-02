@@ -20,6 +20,9 @@
 #ifndef BOUNDS_HPP
 #define BOUNDS_HPP
 
+#define NOMINMAX
+
+
 #include <stdio.h>
 
 #include "simplerandom.hpp"
