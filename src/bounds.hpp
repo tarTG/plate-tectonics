@@ -44,11 +44,6 @@ private:
     Platec::Point2D<float_t> _position;
     Dimension _dimension;
     
-    /// Return a rectangle representing the Bounds inside the world.
-    Platec::Rectangle asRect() const;
-
-
-    
 public:
 
     /// @param worldDimension dimension of the world containing the plate

@@ -85,11 +85,12 @@ bool Bounds::containsWorldPoint(const Platec::Point2D<uint32_t>& p) const
     auto tmp = Platec::Point2D<uint32_t>(p.x() % _worldDimension.getWidth(),
                                             p.y() % _worldDimension.getHeight());
     
-    
-
+    bool x1 = (tmp.x() >= left()) && (tmp.x() < rgt);
+    bool x2 = (tmp.x() + _worldDimension.getWidth() >= left()) && (tmp.x() + _worldDimension.getWidth() < rgt);
+    bool y1 = (tmp.y() >= top()) && (tmp.y() < bot);
+    bool y2 = (tmp.y() +_worldDimension.getHeight() >= top()) && (tmp.y() +_worldDimension.getHeight() < bot);
     //check if coordinates in bounds
-    if((((tmp.x() >= left()) && (tmp.x() < rgt)) || (tmp.x() + _worldDimension.getWidth() >= left()) && (tmp.x() + _worldDimension.getWidth() < rgt)) &&
-       (( (tmp.y() >= top()) && (tmp.y() < bot)) || ((tmp.y() +_worldDimension.getHeight() >= top()) && (tmp.y() +_worldDimension.getHeight() < bot)) )  )
+    if((x1 || x2) && (y1 || y2)  )
     {
         return true;
     }
@@ -122,10 +123,6 @@ void Bounds::grow(const Platec::Vector2D<uint32_t>& delta) {
            + " world height=" + Platec::to_string(_worldDimension.getHeight()));
 }
 
-Platec::Rectangle Bounds::asRect() const 
-{
-    return Platec::Rectangle(_worldDimension, left(), right(), top(), bottom());
-}
 
 std::pair<uint32_t,Platec::Point2D<uint32_t>>
         Bounds::getMapIndex(const Platec::Point2D<uint32_t>& p) const

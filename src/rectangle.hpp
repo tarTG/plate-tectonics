@@ -20,6 +20,8 @@
 #ifndef RECTANGLE_HPP
 #define RECTANGLE_HPP
 
+#define NOMINMAX
+
 #include <cstring> // for size_t
 #include <stdexcept>
 #include "utils.hpp"
