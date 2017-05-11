@@ -22,56 +22,47 @@
 
 const WorldDimension wd(800, 600);
 const Platec::Point2D<float_t> topLeft(10.2f, 48.9f);
-const Platec::Point2D<float_t> topLeftWrapping(700.4f,500.3);
+const Platec::Point2D<float_t> topLeftWrapping(700.4f, 500.3);
 const Dimension plateDim(500, 400);
 const Bounds b(wd, topLeft, plateDim);
 const Bounds b2(wd, topLeftWrapping, plateDim);
 
 
-TEST(Bounds, Index)
-{
+TEST(Bounds, Index) {
     EXPECT_EQ(0, b.index(Platec::Point2D<uint32_t>(0, 0)));
     EXPECT_EQ(100100, b.index(Platec::Point2D<uint32_t>(100, 200)));
     EXPECT_EQ(199999, b.index(Platec::Point2D<uint32_t>(499, 399)));
 }
 
-TEST(Bounds, Area)
-{
+TEST(Bounds, Area) {
     EXPECT_EQ(200000, b.area());
 }
 
-TEST(Bounds, Width)
-{
+TEST(Bounds, Width) {
     EXPECT_EQ(500, b.width());
 }
 
-TEST(Bounds, Height)
-{
+TEST(Bounds, Height) {
     EXPECT_EQ(400, b.height());
 }
 
-TEST(Bounds, LeftAsUint)
-{
+TEST(Bounds, LeftAsUint) {
     EXPECT_EQ(10, b.left());
 }
 
-TEST(Bounds, TopAsUint)
-{
+TEST(Bounds, TopAsUint) {
     EXPECT_EQ(48, b.top());
 }
 
-TEST(Bounds, RightAsUintNonInclusive)
-{
+TEST(Bounds, RightAsUintNonInclusive) {
     EXPECT_EQ(509, b.rightAsUintNonInclusive());
 }
 
-TEST(Bounds, BottomAsUintNonInclusive)
-{
+TEST(Bounds, BottomAsUintNonInclusive) {
     EXPECT_EQ(447, b.bottomAsUintNonInclusive());
 }
 
-TEST(Bounds, ContainsWorldPoint)
-{
+TEST(Bounds, ContainsWorldPoint) {
     // world corners
     EXPECT_EQ(false, b.containsWorldPoint(Platec::Point2D<uint32_t>(0, 0)));
     EXPECT_EQ(false, b.containsWorldPoint(Platec::Point2D<uint32_t>(799, 0)));
@@ -105,8 +96,7 @@ TEST(Bounds, ContainsWorldPoint)
     EXPECT_EQ(false, b.containsWorldPoint(Platec::Point2D<uint32_t>(509, 490)));
 }
 
-TEST(Bounds, IsInLimits)
-{
+TEST(Bounds, IsInLimits) {
     // negative coordinates
     EXPECT_EQ(false, b.isInLimits(Platec::Point2D<uint32_t>(-1, 10)));
     EXPECT_EQ(false, b.isInLimits(Platec::Point2D<uint32_t>(10, -1)));
@@ -123,8 +113,7 @@ TEST(Bounds, IsInLimits)
     EXPECT_EQ(false, b.isInLimits(Platec::Point2D<uint32_t>(500, 400)));
 }
 
-TEST(Bounds, Shift)
-{
+TEST(Bounds, Shift) {
     Bounds bounds(wd, topLeft, plateDim);
     // topLeft = 10.2, 48.9
     bounds.shift(Platec::Vector2D<float_t>(10.7f, 100.1f));
@@ -136,8 +125,7 @@ TEST(Bounds, Shift)
     EXPECT_EQ(400, bounds.height());
 }
 
-TEST(Bounds, Grow)
-{
+TEST(Bounds, Grow) {
     Bounds bounds(wd, topLeft, plateDim);
     bounds.grow(Platec::Vector2D<uint32_t>(123, 0));
 
@@ -159,8 +147,7 @@ TEST(Bounds, Grow)
     EXPECT_EQ(48, bounds2.top());
 }
 
-TEST(Bounds, GetMapIndex)
-{
+TEST(Bounds, GetMapIndex) {
     uint32_t px, py;
 
     px = 10;
@@ -197,21 +184,21 @@ TEST(Bounds, GetMapIndex)
     ASSERT_EQ(res.second.x(), 50);
     ASSERT_EQ(res.second.y(), 50);
     ASSERT_EQ(res.first, 25050);
-    
+
     px = 0;
     py = 0;
     res = b2.getMapIndex(Platec::Point2D<uint32_t>(px, py));
     ASSERT_EQ(res.second.x(), 100);
     ASSERT_EQ(res.second.y(), 100);
     ASSERT_EQ(res.first, 50100);
-    
+
     px = 0;
     py = 600;
     res = b2.getMapIndex(Platec::Point2D<uint32_t>(px, py));
     ASSERT_EQ(res.second.x(), 100);
     ASSERT_EQ(res.second.y(), 100);
     ASSERT_EQ(res.first, 50100);
-   
+
     px = 800;
     py = 0;
     res = b2.getMapIndex(Platec::Point2D<uint32_t>(px, py));
@@ -221,15 +208,13 @@ TEST(Bounds, GetMapIndex)
 
     px = 500;
     py = 200;
-    res = b2.getValidMapIndex(Platec::Point2D<uint32_t>(px, py));
+    res = b2.getMapIndex(Platec::Point2D<uint32_t>(px, py));
     ASSERT_EQ(res.second.x(), 500);
     ASSERT_EQ(res.second.y(), 200);
-    ASSERT_EQ(res.first, BAD_INDEX);    
-    
+    ASSERT_EQ(res.first, BAD_INDEX);
 }
 
-TEST(Bounds, GetValidMapIndex)
-{
+TEST(Bounds, GetValidMapIndex) {
     uint32_t px, py;
 
     px = 10;
@@ -245,8 +230,6 @@ TEST(Bounds, GetValidMapIndex)
     ASSERT_EQ(res.second.x(), 100);
     ASSERT_EQ(res.second.y(), 50);
     ASSERT_EQ(res.first, 25100);
-    
-
 }
 
 
