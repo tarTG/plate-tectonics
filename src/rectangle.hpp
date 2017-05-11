@@ -29,7 +29,7 @@
 
 using namespace std;
 
-const uint32_t BAD_INDEX = std::numeric_limits<uint32_t>::max();
+constexpr uint32_t BAD_INDEX = (std::numeric_limits<uint32_t>::max)();
 
 namespace Platec {
 

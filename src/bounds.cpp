@@ -73,25 +73,25 @@ uint32_t Bounds::bottomAsUintNonInclusive() const {
     return bottom() - 1;
 }
 
-bool Bounds::containsWorldPoint(const Platec::Point2D<uint32_t>& p) const 
-{
+bool Bounds::containsWorldPoint(const Platec::Point2D<uint32_t>& p) const {
     auto bot = bottom();
     auto rgt = right();
-    if(bottom() < top())
+    if( bottom() < top())
         bot += _worldDimension.getHeight();
-    if(right() < left())
+    if( right() < left())
         rgt += _worldDimension.getWidth();
 
     auto tmp = Platec::Point2D<uint32_t>(p.x() % _worldDimension.getWidth(),
-                                            p.y() % _worldDimension.getHeight());
-    
+                                         p.y() % _worldDimension.getHeight());
+
     bool x1 = (tmp.x() >= left()) && (tmp.x() < rgt);
-    bool x2 = (tmp.x() + _worldDimension.getWidth() >= left()) && (tmp.x() + _worldDimension.getWidth() < rgt);
+    bool x2 = (tmp.x() + _worldDimension.getWidth() >= left()) 
+           && (tmp.x() + _worldDimension.getWidth() < rgt);
     bool y1 = (tmp.y() >= top()) && (tmp.y() < bot);
-    bool y2 = (tmp.y() +_worldDimension.getHeight() >= top()) && (tmp.y() +_worldDimension.getHeight() < bot);
-    //check if coordinates in bounds
-    if((x1 || x2) && (y1 || y2)  )
-    {
+    bool y2 = (tmp.y() +_worldDimension.getHeight() >= top()) 
+           && (tmp.y() +_worldDimension.getHeight() < bot);
+    // check if coordinates in bounds
+    if( (x1 || x2) && (y1 || y2)  ){
         return true;
     }
     return false;
@@ -124,33 +124,29 @@ void Bounds::grow(const Platec::Vector2D<uint32_t>& delta) {
 }
 
 
-std::pair<uint32_t,Platec::Point2D<uint32_t>>
-        Bounds::getMapIndex(const Platec::Point2D<uint32_t>& p) const
-{
+std::pair<uint32_t, Platec::Point2D<uint32_t>>
+        Bounds::getMapIndex(const Platec::Point2D<uint32_t>& p) const {
 
-     //check if coordinates in bounds
-    if(containsWorldPoint(p)  )
-    {
+     // check if coordinates in bounds
+    if( containsWorldPoint(p)  ){
        auto tmp = Platec::Point2D<uint32_t>(p.x() % _worldDimension.getWidth(),
-                                            p.y() % _worldDimension.getHeight());
-       //calculate coordinates in Bounds
-       const auto x = tmp.x() + ((tmp.x() < left()) ? _worldDimension.getWidth() : 0) - left();
-       const auto y = tmp.y() + ((tmp.y() < top()) ? _worldDimension.getHeight() : 0) - top();
+                                           p.y() % _worldDimension.getHeight());
+       // calculate coordinates in Bounds
+       const auto x = tmp.x() + ((tmp.x() < left()) 
+                            ? _worldDimension.getWidth() : 0) - left();
+       const auto y = tmp.y() + ((tmp.y() < top()) 
+                            ? _worldDimension.getHeight() : 0) - top();
  
-       return std::make_pair(_dimension.indexOf(x,y),
-                    Platec::Point2D<uint32_t>(x,y));
+       return std::make_pair(_dimension.indexOf(x, y),
+                    Platec::Point2D<uint32_t>(x, y));
+    } else{
+        // return bad index
+       return std::make_pair(BAD_INDEX, p);
     }
-    else
-    {
-        //return bad index
-       return std::make_pair(BAD_INDEX,p);
-    }
-  
 }
 
-std::pair<uint32_t,Platec::Point2D<uint32_t>>
-        Bounds::getValidMapIndex(const Platec::Point2D<uint32_t>& p) const 
-{
+std::pair<uint32_t, Platec::Point2D<uint32_t>>
+        Bounds::getValidMapIndex(const Platec::Point2D<uint32_t>& p) const {
     auto res = getMapIndex(p);
     ASSERT(res.first != BAD_INDEX, "BAD map index found");
 
