@@ -33,24 +33,24 @@ class Matrix
 private:
 
     std::vector<Value> data;
-    Dimension dim;   
+    Dimension dimension;   
     
 public:
     
     Matrix(const uint32_t width,const uint32_t height)
-        : data(width*height), dim(width, height)  {
+        : data(width*height), dimension(width, height)  {
     }
 
     Matrix(const std::vector<Value>& data,
             const uint32_t width,const uint32_t height)
-        : data(data), dim(width, height) {
+        : data(data), dimension(width, height) {
     }
     
-    Matrix(const Dimension& dim) : data(dim.getArea()), dim(dim) {
+    Matrix(const Dimension& dim) : data(dim.getArea()), dimension(dim) {
     }
     
     Matrix(const std::vector<Value>& data,const Dimension& dim)
-        : data(data), dim(dim) {
+        : data(data), dimension(dim) {
     }    
 
     void set_all(const Value value) {
@@ -59,11 +59,11 @@ public:
     
 
     void set(const Platec::Point2D<uint32_t>& point, const Value value) {
-        data.at(dim.indexOf(point)) = value;
+        data.at(dimension.indexOf(point)) = value;
     }
 
     const Value get(const Platec::Point2D<uint32_t>& point) const {
-        return data.at(dim.indexOf(point));
+        return data.at(dimension.indexOf(point));
     }
     
     const Value get(const uint32_t index) const {
@@ -78,11 +78,11 @@ public:
     }        
 
     const Value& operator[](const Platec::Point2D<uint32_t>& point) const {
-        return data.at(dim.indexOf(point));;
+        return data.at(dimension.indexOf(point));;
     }
     
     Value& operator[](const Platec::Point2D<uint32_t>& point) {
-        return data.at(dim.indexOf(point));
+        return data.at(dimension.indexOf(point));
     }
 
     const Value* raw_data() const {
@@ -96,14 +96,22 @@ public:
     }
         
     const uint32_t width() const {
-        return dim.getWidth();
+        return dimension.getWidth();
     }
     
     const uint32_t height() const {
-        return dim.getHeight();
+        return dimension.getHeight();
     }
     const uint32_t area() const {
-        return dim.getArea(); 
+        return dimension.getArea(); 
+    }
+
+    const Dimension& getDimension() const {
+        return dimension;
+    }
+
+    const std::vector<Value>& getData() const {
+        return data;
     }
 };
 

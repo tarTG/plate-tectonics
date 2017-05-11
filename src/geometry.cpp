@@ -65,6 +65,12 @@ uint32_t Dimension::indexOf(const Platec::Point2D<uint32_t>& point) const {
     return point.y() * getWidth() + point.x();
 }
 
+const Platec::Vector2D<uint32_t> 
+                    Dimension::coordOF(const uint32_t index) const {
+    return Platec::Vector2D<uint32_t>(xFromIndex(index),yFromIndex(index));
+}
+
+
 
 
 uint32_t WorldDimension::lineIndex(const uint32_t y) const {
@@ -72,11 +78,11 @@ uint32_t WorldDimension::lineIndex(const uint32_t y) const {
     return indexOf(0, y);
 }
 
-uint32_t WorldDimension::yFromIndex(const uint32_t index) const {
+uint32_t Dimension::yFromIndex(const uint32_t index) const {
     return index / getWidth();
 }
 
-uint32_t WorldDimension::xFromIndex(const uint32_t index) const {
+uint32_t Dimension::xFromIndex(const uint32_t index) const {
     return index - yFromIndex(index) * getWidth();
 }
 
