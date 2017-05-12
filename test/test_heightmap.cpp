@@ -33,7 +33,7 @@ TEST(HeightMap, Area) {
 
 TEST(HeightMap, SetAndGet) {
     HeightMap hm = HeightMap(50, 20);
-    hm.set( Platec::Point2D<uint32_t>(0, 0), 0.2f);
+    hm.set(Platec::Point2D<uint32_t>(0, 0), 0.2f);
     hm.set(Platec::Point2D<uint32_t>(20, 18), 0.7f);
     hm.set(Platec::Point2D<uint32_t>(40, 18), 0.5f);
     hm.set(Platec::Point2D<uint32_t>(49, 19), 0.9f);

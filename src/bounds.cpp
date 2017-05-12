@@ -20,7 +20,8 @@
 #include "bounds.hpp"
 #include <utility>
 
-Bounds::Bounds(const WorldDimension& worldDimension, const Platec::Point2D<float_t>& position,
+Bounds::Bounds(const WorldDimension& worldDimension, 
+                const Platec::Point2D<float_t>& position,
                const Dimension& dimension)
     : _worldDimension(worldDimension),
       _position(position),

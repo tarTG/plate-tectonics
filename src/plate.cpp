@@ -46,7 +46,8 @@ plate::plate(long seed, float* m, uint32_t w, uint32_t h, uint32_t _x, uint32_t 
     _movement(_randsource, worldDimension) {
     const uint32_t plate_area = w * h;
 
-    _bounds = new Bounds(worldDimension, Platec::Point2D<float_t>(_x, _y), Dimension(w, h));
+    _bounds = new Bounds(worldDimension,
+                    Platec::Point2D<float_t>(_x, _y), Dimension(w, h));
 
     uint32_t k;
     for (uint32_t y = k = 0; y < _bounds->height(); ++y) {
@@ -56,7 +57,7 @@ plate::plate(long seed, float* m, uint32_t w, uint32_t h, uint32_t _x, uint32_t 
             // the generation of new oceanic crust as if the plate
             // had been moving to its current direction until all
             // plate's (oceanic) crust receive an age.
-            age_map.set(Platec::Point2D<uint32_t>(x, y), 
+            age_map.set(Platec::Point2D<uint32_t>(x, y),
                                 plate_age & -(m[k] > 0));
         }
     }
