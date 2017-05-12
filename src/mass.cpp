@@ -19,35 +19,36 @@
 
 #include "mass.hpp"
 
+#include <algorithm>
+
 // ----------------------------------------------
 // MassBuilder
 // ----------------------------------------------
 
-MassBuilder::MassBuilder(const float* m, const Dimension& dimension)
-    : mass(0), cx(0), cy(0)
+MassBuilder::MassBuilder(const HeightMap& map)
+    : mass(0), center(0.f,0.f)
 {
-    uint32_t k;
-    for (uint32_t y = k = 0; y < dimension.getHeight(); ++y) {
-        for (uint32_t x = 0; x < dimension.getWidth(); ++x, ++k) {
-            ASSERT(m[k] >= 0.0f, "Crust should be not negative");
-            addPoint(x, y, m[k]);
-        }
+    uint32_t index = 0;
+    for(const auto& data : map.getData())
+    {
+        addPoint(map.getDimension().coordOF(index),data);
+        ++index;
     }
+
 }
 
 MassBuilder::MassBuilder()
-    : mass(0), cx(0), cy(0)
+    : mass(0), center(0.f,0.f)
 {
-
 }
 
-void MassBuilder::addPoint(uint32_t x, uint32_t y, float crust)
+void MassBuilder::addPoint(const Platec::Vector2D<uint32_t>& point,
+                            const float crust)
 {
     ASSERT(crust >= 0.0f, "Crust should be not negative");
     mass += crust;
     // Update the center coordinates weighted by mass.
-    cx += x * crust;
-    cy += y * crust;
+    center.shift(Platec::Vector2D<float_t>(point.x(),point.y()) * crust);
 }
 
 Mass MassBuilder::build()
@@ -57,7 +58,7 @@ Mass MassBuilder::build()
     } else {
         ASSERT(mass > 0, "Mass was zero!");
         float inv_mass = 1 / mass;
-        return Mass(mass, cx * inv_mass, cy * inv_mass);
+        return Mass(mass, center.x() * inv_mass, center.y() * inv_mass);
     }
 }
 

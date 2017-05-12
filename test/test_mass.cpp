@@ -22,13 +22,13 @@
 
 TEST(MassBuilder, ConstructorFromHeightmap)
 {
-    float heightmap[20] = {0.0f, 0.0f, 0.0f, 0.0f, 10.3f,
+    std::vector<float> heightmap = {0.0f, 0.0f, 0.0f, 0.0f, 10.3f,
                            5.0f, 0.0f, 0.0f, 0.0f,  0.0f,
                            0.2f, 0.0f, 0.0f, 0.0f,  0.0f,
                            1.0f, 1.0f, 0.0f, 0.0f,  0.0f
                           };
     Dimension dim(5, 4);
-    MassBuilder mb(heightmap, dim);
+    MassBuilder mb(HeightMap(heightmap, dim));
     EXPECT_FLOAT_EQ(17.5f, mb.build().getMass());
     EXPECT_FLOAT_EQ(2.4114285714285715f, mb.build().getCx());
     EXPECT_FLOAT_EQ(0.6514285714285715f, mb.build().getCy());
@@ -39,12 +39,12 @@ TEST(MassBuilder, AddPoint)
     MassBuilder mb;
     EXPECT_FLOAT_EQ(0.0f, mb.build().getMass());
 
-    mb.addPoint(10, 10, 123.0);
+    mb.addPoint(Platec::Vector2D<uint32_t>(10, 10), 123.0);
     EXPECT_FLOAT_EQ(123.0f, mb.build().getMass());
     EXPECT_FLOAT_EQ(10.0f, mb.build().getCx());
     EXPECT_FLOAT_EQ(10.0f, mb.build().getCy());
 
-    mb.addPoint(0, 5, 123.0);
+    mb.addPoint(Platec::Vector2D<uint32_t>(0, 5), 123.0);
     EXPECT_FLOAT_EQ(246.0f, mb.build().getMass());
     EXPECT_FLOAT_EQ(5.0f, mb.build().getCx());
     EXPECT_FLOAT_EQ(7.5f, mb.build().getCy());

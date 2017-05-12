@@ -35,14 +35,15 @@ class Mass;
 class MassBuilder
 {
 public:
-    // FIXME: take a HeightMap instead of float*
-    MassBuilder(const float* m, const Dimension& dimension);
+    MassBuilder(const HeightMap& map);
+    
     MassBuilder();
-    void addPoint(uint32_t x, uint32_t y, float crust);
+    
+    void addPoint(const Platec::Vector2D<uint32_t>& point,const float crust);
     Mass build();
 private:
     float mass;           ///< Amount of crust that constitutes the plate.
-    float cx, cy;         ///< X and Y components of the center of mass of plate.
+    Platec::Point2D<float_t> center;         ///< X and Y components of the center of mass of plate.
 };
 
 class IMass
