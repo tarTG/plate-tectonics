@@ -22,12 +22,10 @@
 #include "geometry.hpp"
 
 Dimension::Dimension(uint32_t width, uint32_t height) :
-dim(width,height)
-{
+dim(width, height) {
 }
 
-void Dimension::grow(Platec::Vector2D<uint32_t> growSize) 
-{
+void Dimension::grow(Platec::Vector2D<uint32_t> growSize) {
     dim = dim+growSize;
 }
 
@@ -65,9 +63,9 @@ uint32_t Dimension::indexOf(const Platec::Point2D<uint32_t>& point) const {
     return point.y() * getWidth() + point.x();
 }
 
-const Platec::Vector2D<uint32_t> 
+const Platec::Vector2D<uint32_t>
                     Dimension::coordOF(const uint32_t index) const {
-    return Platec::Vector2D<uint32_t>(xFromIndex(index),yFromIndex(index));
+    return Platec::Vector2D<uint32_t>(xFromIndex(index), yFromIndex(index));
 }
 
 
@@ -101,7 +99,7 @@ uint32_t WorldDimension::yCap(const uint32_t y) const {
 
 Platec::Point2D<uint32_t> WorldDimension::xMod
                             (const Platec::Point2D<uint32_t>& point) const {
-    if (point.x()>= getWidth()){
+    if (point.x()>= getWidth()) {
         return Platec::Point2D<uint32_t>(point.x()-getWidth(), point.y());
     }
     return point;
