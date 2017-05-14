@@ -216,7 +216,7 @@ void plate::applyFriction(float deformed_mass)
 {
     // Remove the energy that deformation consumed from plate's kinetic
     // energy: F - dF = ma - dF => a = dF/m.
-    if (!_mass.null())
+    if (!_mass.isNull())
     {
         _movement.applyFriction(deformed_mass, _mass.getMass());
     }
@@ -224,7 +224,7 @@ void plate::applyFriction(float deformed_mass)
 
 void plate::collide(plate& p, uint32_t wx, uint32_t wy, float coll_mass)
 {
-    if (!_mass.null() && coll_mass > 0) {
+    if (!_mass.isNull() && coll_mass > 0) {
         _movement.collide(_mass, p, wx, wy, coll_mass);
     }
 }
