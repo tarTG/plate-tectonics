@@ -20,7 +20,7 @@
 #include "bounds.hpp"
 #include <utility>
 
-Bounds::Bounds(const WorldDimension& worldDimension, 
+Bounds::Bounds(const WorldDimension& worldDimension,
                 const Platec::Point2D<float_t>& position,
                const Dimension& dimension)
     : worldDimension(worldDimension),
@@ -35,7 +35,6 @@ uint32_t Bounds::index(const Platec::Point2D<uint32_t>& p) const {
     ASSERT(dimension.contains(p),
            "Invalid coordinates");
     return dimension.indexOf(p);
-    
 }
 
 uint32_t Bounds::area() const {
@@ -112,14 +111,15 @@ void Bounds::shift(const Platec::Vector2D<float_t>& delta) {
 }
 
 void Bounds::grow(const Platec::Vector2D<uint32_t>& delta) {
-
     dimension.grow(delta);
   //  _worldDimension.contains(_dimension.) TODO
     ASSERT(dimension.getWidth() <= worldDimension.getWidth(),
            "Bounds are larger than the world containing it");
     ASSERT(dimension.getHeight() <= worldDimension.getHeight(),
-           "Bounds taller than the world containing it. delta=" + Platec::to_string(delta.y())
-           + " resulting plate height=" + Platec::to_string(dimension.getHeight())
+           "Bounds taller than the world containing it. delta="
+            + Platec::to_string(delta.y())
+           + " resulting plate height="
+            + Platec::to_string(dimension.getHeight())
            + " world height=" + Platec::to_string(worldDimension.getHeight()));
 }
 

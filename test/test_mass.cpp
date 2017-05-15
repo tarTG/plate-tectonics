@@ -17,11 +17,12 @@
  *  License along with this library; if not, see http://www.gnu.org/licenses/
  *****************************************************************************/
 
+#include <vector>
 #include "mass.hpp"
 #include "gtest/gtest.h"
 
-TEST(MassBuilder, ConstructorFromHeightmap)
-{
+
+TEST(MassBuilder, ConstructorFromHeightmap) {
     std::vector<float> heightmap = {0.0f, 0.0f, 0.0f, 0.0f, 10.3f,
                            5.0f, 0.0f, 0.0f, 0.0f,  0.0f,
                            0.2f, 0.0f, 0.0f, 0.0f,  0.0f,
@@ -34,8 +35,7 @@ TEST(MassBuilder, ConstructorFromHeightmap)
     EXPECT_FLOAT_EQ(0.6514285714285715f, mb.build().massCenter().y());
 }
 
-TEST(MassBuilder, AddPoint)
-{
+TEST(MassBuilder, AddPoint) {
     MassBuilder mb;
     EXPECT_FLOAT_EQ(0.0f, mb.build().getMass());
 
@@ -50,8 +50,7 @@ TEST(MassBuilder, AddPoint)
     EXPECT_FLOAT_EQ(7.5f, mb.build().massCenter().y());
 }
 
-TEST(Mass, Constructor)
-{
+TEST(Mass, Constructor) {
     Mass mass1(0.0f, Platec::Point2D<float>(7.5f, 8.5f));
     EXPECT_FLOAT_EQ(0.0f, mass1.getMass());
 
@@ -61,8 +60,7 @@ TEST(Mass, Constructor)
     EXPECT_FLOAT_EQ(27.5f, mass2.massCenter().y());
 }
 
-TEST(Mass, Null)
-{
+TEST(Mass, Null) {
     Mass mass1(0.0f, Platec::Point2D<float>(7.5f, 8.5f));
     ASSERT_EQ(true, mass1.isNull());
 
@@ -70,8 +68,7 @@ TEST(Mass, Null)
     ASSERT_EQ(false, mass2.isNull());
 }
 
-TEST(Mass, IncMass)
-{
+TEST(Mass, IncMass) {
     Mass mass(8.5f, Platec::Point2D<float>(7.6f, 27.5f));
     EXPECT_FLOAT_EQ(8.5f, mass.getMass());
     EXPECT_FLOAT_EQ(7.6f, mass.massCenter().x());
