@@ -141,7 +141,7 @@ public:
         _area++;
     }
     virtual void enlarge_to_contain(uint32_t x, uint32_t y) {
-        _enlargePoint = new Platec::Point2D<int32_t>(x, y);
+        _enlargePoint = new Platec::vec2ui(x, y);
     }
     virtual void markNonExistent() {
         throw runtime_error("Not implemented");
@@ -171,19 +171,19 @@ public:
     virtual uint32_t collCount() const {
         return _collCount;
     }
-    Platec::Point2D<int32_t>* enlargedPoint() {
+    Platec::vec2ui* enlargedPoint() {
         return _enlargePoint;
     }
 private:
     uint32_t _collCount;
     uint32_t _area;
-    Platec::Point2D<int32_t>* _enlargePoint;
+    Platec::vec2ui* _enlargePoint;
 };
 
 class MockSegments : public ISegments
 {
 public:
-    MockSegments(Platec::Point2D<int32_t> p, ContinentId id, ISegmentData* data)
+    MockSegments(Platec::vec2ui p, ContinentId id, ISegmentData* data)
         : _p(p), _id(id), _data(data)
     {
 
@@ -237,7 +237,7 @@ public:
         }
     }
 private:
-    Platec::Point2D<int32_t> _p;
+    Platec::vec2ui _p;
     ContinentId _id;
     ISegmentData* _data;
 };
@@ -249,7 +249,7 @@ TEST(Plate, addCollision)
     plate p = plate(123, heightmap, 100, 3, 50, 23, 18, WorldDimension(256, 128));
 
     MockSegmentData* mSeg = new MockSegmentData(7, 789);
-    MockSegments* mSegments = new MockSegments(Platec::Point2D<int32_t>(123, 78), 99, mSeg);
+    MockSegments* mSegments = new MockSegments(Platec::vec2ui(123, 78), 99, mSeg);
     p.injectSegments(mSegments);
 
     uint32_t area = p.addCollision(123, 78);
@@ -261,7 +261,7 @@ TEST(Plate, addCollision)
 class MockSegments2 : public ISegments
 {
 public:
-    MockSegments2(Platec::Point2D<int32_t> p, ContinentId id, ISegmentData* data, uint32_t index)
+    MockSegments2(Platec::vec2ui p, ContinentId id, ISegmentData* data, uint32_t index)
         : _p(p), _id(id), _data(data), _index(index)
     {
 
@@ -331,7 +331,7 @@ public:
         }
     }
 private:
-    Platec::Point2D<int32_t> _p;
+    Platec::vec2ui _p;
     ContinentId _id;
     ISegmentData* _data;
     uint32_t _index;
@@ -357,7 +357,7 @@ TEST(Plate, addCrustByCollision)
     uint32_t indexInPlate = platePointY * 80 + platePointX;
 
     MockSegmentData* mSeg = new MockSegmentData(7, 789);
-    MockSegments2* mSegments = new MockSegments2(Platec::Point2D<int32_t>(worldPointX, worldPointY), 99, mSeg, indexInPlate);
+    MockSegments2* mSegments = new MockSegments2(Platec::vec2ui(worldPointX, worldPointY), 99, mSeg, indexInPlate);
     p.injectSegments(mSegments);
 
     uint32_t timestampIn_240_120before = p.getCrustTimestamp(worldPointX, worldPointY);
@@ -412,7 +412,7 @@ TEST(Plate, addCrustBySubduction)
     uint32_t indexInPlate = platePointY * 80 + platePointX;
 
     MockSegmentData* mSeg = new MockSegmentData(7, 789);
-    MockSegments2* mSegments = new MockSegments2(Platec::Point2D<int32_t>(worldPointX, worldPointY), 99, mSeg, indexInPlate);
+    MockSegments2* mSegments = new MockSegments2(Platec::vec2ui(worldPointX, worldPointY), 99, mSeg, indexInPlate);
     p.injectSegments(mSegments);
 
     uint32_t timestampIn_240_120before = p.getCrustTimestamp(worldPointX, worldPointY);

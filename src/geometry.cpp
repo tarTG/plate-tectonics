@@ -50,20 +50,20 @@ uint32_t WorldDimension::yMod(const uint32_t y) const {
     return y >= getHeight() ? y-getHeight() : y;
 }
 
-Platec::Point2D<uint32_t>  WorldDimension::normalize
-                    (const Platec::Point2D<uint32_t>& point) const {
-    return Platec::Point2D<uint32_t>( xMod(point.x()), yMod(point.y()) );
+Platec::vec2ui  WorldDimension::normalize
+                    (const Platec::vec2ui& point) const {
+    return Platec::vec2ui( xMod(point.x()), yMod(point.y()) );
 }
 
 uint32_t Dimension::indexOf(const uint32_t x, const uint32_t y) const {
     return y * getWidth() + x;
 }
 
-uint32_t Dimension::indexOf(const Platec::Point2D<uint32_t>& point) const {
+uint32_t Dimension::indexOf(const Platec::vec2ui& point) const {
     return point.y() * getWidth() + point.x();
 }
 
-const Platec::Vector2D<uint32_t>
+const Platec::vec2ui
                     Dimension::coordOF(const uint32_t index) const {
     return Platec::Vector2D<uint32_t>(xFromIndex(index), yFromIndex(index));
 }
@@ -97,42 +97,39 @@ uint32_t WorldDimension::yCap(const uint32_t y) const {
     return std::min(y, getHeight()-1);
 }
 
-Platec::Point2D<uint32_t> WorldDimension::xMod
-                            (const Platec::Point2D<uint32_t>& point) const {
+Platec::vec2ui WorldDimension::xMod
+                            (const Platec::vec2ui& point) const {
     if (point.x()>= getWidth()) {
-        return Platec::Point2D<uint32_t>(point.x()-getWidth(), point.y());
+        return Platec::vec2ui(point.x()-getWidth(), point.y());
     }
     return point;
 }
 
-Platec::Point2D<uint32_t> WorldDimension::yMod
-                        (const Platec::Point2D<uint32_t>& point) const {
+Platec::vec2ui WorldDimension::yMod
+                        (const Platec::vec2ui& point) const {
     if (point.y()>= getHeight()) {
-        return Platec::Point2D<uint32_t>(point.x(), point.y()-getHeight());
+        return Platec::vec2ui(point.x(), point.y()-getHeight());
     }
     return point;
 }
 
-Platec::Point2D<uint32_t> WorldDimension::pointMod
-                        (const Platec::Point2D<uint32_t>& point) const {
-    return Platec::Point2D<uint32_t>(xMod(point.x()), yMod(point.y()));
+Platec::vec2ui WorldDimension::pointMod
+                        (const Platec::vec2ui& point) const {
+    return Platec::vec2ui(xMod(point.x()), yMod(point.y()));
 }
 
 
 uint32_t WorldDimension::normalizedIndexOf
-                    (const Platec::Point2D<uint32_t>& point) const {
+                    (const Platec::vec2ui& point) const {
     return indexOf( pointMod( point));
 }
 
-Platec::Point2D<uint32_t> WorldDimension::xCap
-                        (const Platec::Point2D<uint32_t>& point) const {
-    return Platec::Point2D<uint32_t> (std::min(point.x(),
-                                        getWidth()-1), point.y());
+Platec::vec2ui WorldDimension::xCap
+                        (const Platec::vec2ui& point) const {
+    return Platec::vec2ui (std::min(point.x(), getWidth()-1), point.y());
 }
 
-Platec::Point2D<uint32_t> WorldDimension::yCap
-                            (const Platec::Point2D<uint32_t>& point) const {
-    return Platec::Point2D<uint32_t> (point.x(),
-                                      std::min(point.y(),
-                                        getHeight()-1));
+Platec::vec2ui WorldDimension::yCap
+                            (const Platec::vec2ui& point) const {
+    return Platec::vec2ui (point.x(), std::min(point.y(), getHeight()-1));
 }

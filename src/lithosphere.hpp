@@ -166,7 +166,6 @@ private:
     };
 
     void restart(); //< Replace plates with a new population.
-    WorldPoint randomPosition();
 
     HeightMap hmap; ///< Height map representing the topography of system.
     IndexMap imap; ///< Plate index map of the "owner" of each map point.

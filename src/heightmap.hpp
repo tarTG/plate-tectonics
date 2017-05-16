@@ -58,11 +58,11 @@ public:
     }
     
 
-    void set(const Platec::Point2D<uint32_t>& point, const Value value) {
+    void set(const Platec::vec2ui& point, const Value value) {
         data.at(dimension.indexOf(point)) = value;
     }
 
-    const Value get(const Platec::Point2D<uint32_t>& point) const {
+    const Value get(const Platec::vec2ui& point) const {
         return data.at(dimension.indexOf(point));
     }
     
@@ -77,11 +77,11 @@ public:
         return data.at(index);;
     }        
 
-    const Value& operator[](const Platec::Point2D<uint32_t>& point) const {
+    const Value& operator[](const Platec::vec2ui& point) const {
         return data.at(dimension.indexOf(point));;
     }
     
-    Value& operator[](const Platec::Point2D<uint32_t>& point) {
+    Value& operator[](const Platec::vec2ui& point) {
         return data.at(dimension.indexOf(point));
     }
 

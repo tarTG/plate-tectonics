@@ -247,11 +247,11 @@ public:
     float getCy() const {
         return _mass.massCenter().y();
     }
-    const Platec::Point2D<float_t> massCenter() const {
+    const Platec::vec2f massCenter() const {
         return _mass.massCenter();
     }
 
-    void decImpulse(const Platec::Vector2D<float_t>& delta) {
+    void decImpulse(const Platec::vec2f& delta) {
         _movement.decDx(delta.x());
         _movement.decDy(delta.y());
     }

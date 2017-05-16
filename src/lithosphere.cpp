@@ -52,17 +52,9 @@ uint32_t findBound(const uint32_t* map, uint32_t length, uint32_t x0, uint32_t y
                    int dx, int dy);
 uint32_t findPlate(plate** plates, float x, float y, uint32_t num_plates);
 
-WorldPoint lithosphere::randomPosition()
-{
-    return WorldPoint(
-               _randsource.next() % _worldDimension.getWidth(),
-               _randsource.next() % _worldDimension.getHeight(),
-               _worldDimension);
-}
-
 void lithosphere::createNoise(float* tmp, const WorldDimension& tmpDim, bool useSimplex)
 {
-    ::createNoise(tmp, tmpDim, _randsource, useSimplex);
+  ::createNoise(tmp, tmpDim, _randsource, useSimplex);
 }
 
 void lithosphere::createSlowNoise(float* tmp, const WorldDimension& tmpDim)
