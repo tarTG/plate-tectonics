@@ -1,38 +1,24 @@
-/******************************************************************************
- *  plate-tectonics, a plate tectonics simulation library
- *  Copyright (C) 2012-2013 Lauri Viitanen
- *  Copyright (C) 2014-2015 Federico Tomassetti, Bret Curtis
- *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
- *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
- *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, see http://www.gnu.org/licenses/
- *****************************************************************************/
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
 
-#ifndef GEOMETRY_HPP
-#define GEOMETRY_HPP
+/* 
+ * File:   Dimension.h
+ * Author: ro-lip
+ *
+ * Created on 16. Mai 2017, 14:06
+ */
 
-#define NOMINMAX
+#ifndef DIMENSION_H
+#define DIMENSION_H
 
-#include <cmath>
-#include <stdexcept>
 #include <algorithm>
 #include <type_traits>
 #include "utils.hpp"
-#include "Vector2D.h"
+#include "vector2D.h"
 
-
-class WorldDimension;
-
-/// Dimension of a Rectangle.
 class Dimension {
     
 protected:
@@ -42,16 +28,9 @@ public:
     /// Initialize the dimension with the given values
     Dimension(const uint32_t width,const uint32_t height);
 
-    uint32_t getWidth() const {
-        return dim.x();
-    }
-    uint32_t getHeight() const {
-        return dim.y();
-    }
-    uint32_t getArea() const {
-        return getWidth() * getHeight();
-    }
-    uint32_t indexOf(const uint32_t x, const uint32_t y) const;
+    uint32_t getWidth() const;
+    uint32_t getHeight() const;
+    uint32_t getArea() const;
     uint32_t indexOf(const Platec::vec2ui& point) const;
     
     uint32_t yFromIndex(const uint32_t index) const;
@@ -67,11 +46,6 @@ public:
     }
     void grow(Platec::vec2ui growSize);
 
-};
-
-class WorldDimension : public Dimension {
-public:
-    WorldDimension(const uint32_t width,const uint32_t height);
     uint32_t getMax() const;
     uint32_t xMod(const uint32_t x) const;
     Platec::vec2ui xMod(const Platec::vec2ui& point) const;
@@ -80,7 +54,6 @@ public:
     Platec::vec2ui pointMod(const Platec::vec2ui& point) const;
     Platec::vec2ui  normalize(const Platec::vec2ui& point) const;
     uint32_t lineIndex(const uint32_t y) const;
-    uint32_t normalizedIndexOf(const uint32_t x, const uint32_t y) const;
     uint32_t normalizedIndexOf(const Platec::vec2ui& point) const; 
     uint32_t xCap(const uint32_t x) const;
     Platec::vec2ui xCap(const Platec::vec2ui& point) const;
@@ -113,4 +86,5 @@ public:
 
 };
 
-#endif
+#endif /* DIMENSION_H */
+

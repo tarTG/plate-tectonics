@@ -24,7 +24,7 @@
 #include <stdint.h>
 #include <vector>
 
-#include "geometry.hpp"
+#include "dimension.h"
 
 
 template <typename Value>
@@ -115,7 +115,7 @@ public:
     }
 };
 
-typedef Matrix<float> HeightMap;
+typedef Matrix<float_t> HeightMap;
 typedef Matrix<uint32_t> AgeMap;
 typedef Matrix<uint32_t> IndexMap;
 

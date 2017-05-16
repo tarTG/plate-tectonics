@@ -20,7 +20,7 @@
 #include "bounds.hpp"
 #include <utility>
 
-Bounds::Bounds(const WorldDimension& worldDimension,
+Bounds::Bounds(const Dimension& worldDimension,
                 const Platec::vec2f& position,
                const Dimension& dimension)
     : worldDimension(worldDimension),
@@ -136,8 +136,8 @@ std::pair<uint32_t, Platec::vec2ui>
        const auto y = tmp.y() + ((tmp.y() < top())
                             ? worldDimension.getHeight() : 0) - top();
 
-       return std::make_pair(dimension.indexOf(x, y),
-                    Platec::vec2ui(x, y));
+       tmp = Platec::vec2ui(x, y);
+       return std::make_pair(dimension.indexOf(tmp),tmp);
     } else {
         // return bad index
        return std::make_pair(BAD_INDEX, p);

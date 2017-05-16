@@ -23,7 +23,7 @@
 #define NOMINMAX
 
 #include "heightmap.hpp"
-#include "geometry.hpp"
+#include "dimension.h"
 
 class Mass;
 

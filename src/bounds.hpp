@@ -31,7 +31,7 @@
 #include "rectangle.hpp"
 #include "segment_data.hpp"
 #include "utils.hpp"
-#include "geometry.hpp"
+#include "dimension.h"
 
 
 
@@ -41,7 +41,7 @@ class Bounds
     
 private:
     
-    const WorldDimension worldDimension;
+    const Dimension worldDimension;
     Platec::vec2f position;
     Dimension dimension;
     
@@ -50,7 +50,7 @@ public:
     /// @param worldDimension dimension of the world containing the plate
     /// @param position Position of the top left corner of the plae
     /// @param dimension Dimension of the plate
-    Bounds(const WorldDimension& worldDimension,
+    Bounds(const Dimension& worldDimension,
            const Platec::vec2f& position,
            const Dimension& dimension);
 
@@ -88,7 +88,7 @@ public:
     /// It is expressed in world coordinates.    
     uint32_t bottomAsUintNonInclusive() const;
     
-    /// Given a point in World relative coordinates, it tells if it is part of the plate or not.   
+    /// Given a point in  relative coordinates, it tells if it is part of the plate or not.   
     bool containsWorldPoint(const Platec::vec2ui& p) const;
     
     /// Given a point in plate relative coordinates, it tells if it is part of the plate or not.    

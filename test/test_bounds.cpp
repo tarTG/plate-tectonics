@@ -20,7 +20,7 @@
 #include "bounds.hpp"
 #include "gtest/gtest.h"
 
-const WorldDimension wd(800, 600);
+const Dimension wd(800, 600);
 const Platec::vec2f topLeft(10.2f, 48.9f);
 const Platec::vec2f topLeftWrapping(700.4f, 500.3);
 const Dimension plateDim(500, 400);

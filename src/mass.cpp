@@ -20,7 +20,7 @@
 #include "mass.hpp"
 
 #include <algorithm>
-#include "Vector2D.h"
+#include "vector2D.h"
 // ----------------------------------------------
 // MassBuilder
 // ----------------------------------------------
@@ -43,6 +43,7 @@ void MassBuilder::addPoint(const Platec::vec2ui& point,
     auto testCrust = std::max(crust, 0.f);
     mass += testCrust;
     // Update the center coordinates weighted by mass.
+    //Explicit convertsion from int to float
     center.shift(Platec::vec2f(point.x(), point.y()) * testCrust);
 }
 
@@ -52,8 +53,7 @@ Mass MassBuilder::build() {
     }
     float inv_mass = 1 / mass;
 
-    return Mass(mass, Platec::vec2f(center.x() * inv_mass,
-                                    center.y() *inv_mass));
+    return Mass(mass, center * inv_mass);
 }
 
 // ----------------------------------------------

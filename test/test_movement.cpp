@@ -27,7 +27,7 @@ using namespace Platec;
 TEST(Movement, Constructor)
 {
     SimpleRandom sr(123);
-    WorldDimension wd(5, 4);
+    Dimension wd(5, 4);
     Movement mov(sr, wd);
     EXPECT_FLOAT_EQ(0.99992257f, mov.velX());
     EXPECT_FLOAT_EQ(0.01244594f, mov.velY());
@@ -37,7 +37,7 @@ TEST(Movement, Constructor)
 TEST(Movement, ApplyFriction)
 {
     SimpleRandom sr(456);
-    WorldDimension wd(50, 40);
+    Dimension wd(50, 40);
     Movement mov(sr, wd);
 
     EXPECT_FLOAT_EQ(0.9989379f, mov.velX());
@@ -55,7 +55,7 @@ TEST(Movement, ApplyFriction)
 TEST(Movement, ApplyFrictionWithNullMass)
 {
     SimpleRandom sr(456);
-    WorldDimension wd(50, 40);
+    Dimension wd(50, 40);
     Movement mov(sr, wd);
 
     mov.applyFriction(7.2f, 0.0f);
@@ -65,7 +65,7 @@ TEST(Movement, ApplyFrictionWithNullMass)
 TEST(Movement, Move)
 {
     SimpleRandom sr(789890);
-    WorldDimension wd(500, 400);
+    Dimension wd(500, 400);
     Movement mov(sr, wd);
 
     EXPECT_FLOAT_EQ(-0.29389676f, mov.velX());
@@ -81,7 +81,7 @@ TEST(Movement, Move)
 TEST(Movement, VelocityOnXNoParams)
 {
     SimpleRandom sr(789890);
-    WorldDimension wd(500, 400);
+    Dimension wd(500, 400);
     Movement mov(sr, wd);
 
     EXPECT_FLOAT_EQ(-0.29389676f, mov.velX());
@@ -92,7 +92,7 @@ TEST(Movement, VelocityOnXNoParams)
 TEST(Movement, VelocityOnYNoParams)
 {
     SimpleRandom sr(789890);
-    WorldDimension wd(500, 400);
+    Dimension wd(500, 400);
     Movement mov(sr, wd);
 
     EXPECT_FLOAT_EQ(-0.95583719f, mov.velY());
@@ -103,7 +103,7 @@ TEST(Movement, VelocityOnYNoParams)
 TEST(Movement, VelocityOnXOneParam)
 {
     SimpleRandom sr(789890);
-    WorldDimension wd(500, 400);
+    Dimension wd(500, 400);
     Movement mov(sr, wd);
 
     EXPECT_FLOAT_EQ(-0.29389676f, mov.velX());
@@ -114,7 +114,7 @@ TEST(Movement, VelocityOnXOneParam)
 TEST(Movement, VelocityOnYOneParam)
 {
     SimpleRandom sr(789890);
-    WorldDimension wd(500, 400);
+    Dimension wd(500, 400);
     Movement mov(sr, wd);
 
     EXPECT_FLOAT_EQ(-0.95583719f, mov.velY());
@@ -125,7 +125,7 @@ TEST(Movement, VelocityOnYOneParam)
 TEST(Movement, Dot)
 {
     SimpleRandom sr(789890);
-    WorldDimension wd(500, 400);
+    Dimension wd(500, 400);
     Movement mov(sr, wd);
 
     EXPECT_FLOAT_EQ(-0.29389676f, mov.velX());
@@ -177,7 +177,7 @@ private:
 TEST(Movement, Collide)
 {
     SimpleRandom sr(789890);
-    WorldDimension wd(500, 400);
+    Dimension wd(500, 400);
     Movement mov(sr, wd);
 
     EXPECT_FLOAT_EQ(-0.29389676f, mov.velX());

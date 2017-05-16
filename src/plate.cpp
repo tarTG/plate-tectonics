@@ -37,7 +37,7 @@
 using namespace std;
 
 plate::plate(long seed, float* m, uint32_t w, uint32_t h, uint32_t _x, uint32_t _y,
-             uint32_t plate_age, WorldDimension worldDimension) :
+             uint32_t plate_age, Dimension worldDimension) :
     _randsource(seed),
     _mass(MassBuilder(HeightMap(std::vector<float>(m, m+(w*h)), Dimension(w, h))).build()),
     map(std::vector<float>(m, m+(w*h)), w, h),
