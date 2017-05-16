@@ -28,6 +28,7 @@
 #include "segment_data.hpp"
 #include "utils.hpp"
 #include "bounds.hpp"
+#include "dimension.h"
 
 #define CONT_BASE 1.0 ///< Height limit that separates seas from dry land.
 #define INITIAL_SPEED_X 1
@@ -43,21 +44,21 @@ class Mass;
 class IMovement
 {
 public:
-    virtual Platec::FloatVector velocityUnitVector() const = 0;
-    virtual void decImpulse(const Platec::FloatVector& delta) = 0;
+    virtual Platec::Vector2D<float_t> velocityUnitVector() const = 0;
+    virtual void decImpulse(const Platec::Vector2D<float_t>& delta) = 0;
 };
 
 class Movement : public IMovement
 {
 public:
-    Movement(SimpleRandom randsource, const WorldDimension& worldDimension);
+    Movement(SimpleRandom randsource, const Dimension& worldDimension);
     void applyFriction(float deformed_mass, float mass);
     void move();
-    Platec::FloatVector velocityUnitVector() const {
-        return Platec::FloatVector(vx, vy);
+    Platec::Vector2D<float_t> velocityUnitVector() const {
+        return Platec::Vector2D<float_t>(vx, vy);
     }
-    Platec::FloatVector velocityVector() const {
-        return Platec::FloatVector(vx * velocity, vy * velocity);
+    Platec::Vector2D<float_t> velocityVector() const {
+        return Platec::Vector2D<float_t>(vx * velocity, vy * velocity);
     }
     float velocityOnX() const;
     float velocityOnY() const;
@@ -83,11 +84,11 @@ public:
     void decDy(float delta) {
         dy -= delta;
     }
-    void addImpulse(const Platec::FloatVector& impulse) {
+    void addImpulse(const Platec::Vector2D<float_t>& impulse) {
         dx += impulse.x();
         dy += impulse.y();
     }
-    void decImpulse(const Platec::FloatVector& delta) {
+    void decImpulse(const Platec::Vector2D<float_t>& delta) {
         dx -= delta.x();
         dy -= delta.y();
     };
@@ -96,7 +97,7 @@ private:
     float relativeUnitVelocityOnY(float otherVy) const;
 
     SimpleRandom _randsource;
-    const WorldDimension _worldDimension;
+    const Dimension _worldDimension;
     float velocity;       ///< Plate's velocity.
     float rot_dir;        ///< Direction of rotation: 1 = CCW, -1 = ClockWise.
     float dx, dy;         ///< X and Y components of plate's acceleration vector.

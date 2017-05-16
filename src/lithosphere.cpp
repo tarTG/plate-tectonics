@@ -30,6 +30,8 @@
 #include <vector>
 #include <cstring>
 #include <iostream>
+#include <algorithm>
+#include <numeric>
 
 #define BOOL_REGENERATE_CRUST   1
 
@@ -50,20 +52,12 @@ uint32_t findBound(const uint32_t* map, uint32_t length, uint32_t x0, uint32_t y
                    int dx, int dy);
 uint32_t findPlate(plate** plates, float x, float y, uint32_t num_plates);
 
-WorldPoint lithosphere::randomPosition()
+void lithosphere::createNoise(float* tmp, const Dimension& tmpDim, bool useSimplex)
 {
-    return WorldPoint(
-               _randsource.next() % _worldDimension.getWidth(),
-               _randsource.next() % _worldDimension.getHeight(),
-               _worldDimension);
+  ::createNoise(tmp, tmpDim, _randsource, useSimplex);
 }
 
-void lithosphere::createNoise(float* tmp, const WorldDimension& tmpDim, bool useSimplex)
-{
-    ::createNoise(tmp, tmpDim, _randsource, useSimplex);
-}
-
-void lithosphere::createSlowNoise(float* tmp, const WorldDimension& tmpDim)
+void lithosphere::createSlowNoise(float* tmp, const Dimension& tmpDim)
 {
     ::createSlowNoise(tmp, tmpDim, _randsource);
 }
@@ -95,21 +89,18 @@ lithosphere::lithosphere(long seed, uint32_t width, uint32_t height, float sea_l
         throw runtime_error("Width and height should be >=5");
     }
 
-    WorldDimension tmpDim = WorldDimension(width+1, height+1);
+    Dimension tmpDim = Dimension(width+1, height+1);
     const uint32_t A = tmpDim.getArea();
-    float* tmp = new float[A];
+    std::vector<float> tmp = std::vector<float>(A);
 
-    createSlowNoise(tmp, tmpDim);
+    createSlowNoise(&tmp[0], tmpDim);
 
-    float lowest = tmp[0], highest = tmp[0];
-    for (uint32_t i = 1; i < A; ++i)
-    {
-        lowest = lowest < tmp[i] ? lowest : tmp[i];
-        highest = highest > tmp[i] ? highest : tmp[i];
-    }
-
-    for (uint32_t i = 0; i < A; ++i) // Scale to [0 ... 1]
-        tmp[i] = (tmp[i] - lowest) / (highest - lowest);
+    //find min and max element
+    float lowest =  *std::min_element(tmp.begin(), tmp.end());
+    float highest = *std::max_element(tmp.begin(), tmp.end());
+    
+    //normalize
+    std::for_each(tmp.begin(),tmp.end(), [&](auto& value) {value = (value - lowest) / (highest - lowest);});
 
     float sea_threshold = 0.5;
     float th_step = 0.5;
@@ -118,9 +109,7 @@ lithosphere::lithosphere(long seed, uint32_t width, uint32_t height, float sea_l
     // ratio defined be "sea_level".
     while (th_step > 0.01)
     {
-        uint32_t count = 0;
-        for (uint32_t i = 0; i < A; ++i)
-            count += (tmp[i] < sea_threshold);
+        uint32_t count = std::count_if(tmp.begin(),tmp.end(), [&](auto& value){return value < sea_threshold;});
 
         th_step *= 0.5;
         if (count / (float)A < sea_level)
@@ -130,12 +119,12 @@ lithosphere::lithosphere(long seed, uint32_t width, uint32_t height, float sea_l
     }
 
     sea_level = sea_threshold;
-    for (uint32_t i = 0; i < A; ++i) // Genesis 1:9-10.
-    {
-        tmp[i] = (tmp[i] > sea_level) *
-                 (tmp[i] + CONTINENTAL_BASE) +
-                 (tmp[i] <= sea_level) * OCEANIC_BASE;
-    }
+    
+    // Genesis 1:9-10.
+    std::for_each(tmp.begin(),tmp.end(), 
+                [&](float& value){ value = (value > sea_level) *
+                 (value+ CONTINENTAL_BASE ) +(value <= sea_level) * ( OCEANIC_BASE) ;});
+
 
     // Scalp the +1 away from map side to get a power of two side length!
     // Practically only the redundant map edges become removed.
@@ -145,16 +134,13 @@ lithosphere::lithosphere(long seed, uint32_t width, uint32_t height, float sea_l
                _worldDimension.getWidth()*sizeof(float));
     }
 
-    delete[] tmp;
-
     collisions.resize(max_plates);
     subductions.resize(max_plates);
 
     // Create default plates
     plates = new plate*[max_plates];
-    for (uint32_t i = 0; i < max_plates; i++) {
-        plate_areas[i].border.reserve(8);
-    }
+    std::for_each(plate_areas.begin(),plate_areas.end(),
+                    [&](auto& platear){platear.border.reserve(8);});
     createPlates();
 }
 
@@ -316,7 +302,7 @@ void lithosphere::createPlates()
             // Copy plate's height data from global map into local map.
             for (uint32_t y = y0, j = 0; y < y1; ++y) {
                 for (uint32_t x = x0; x < x1; ++x, ++j) {
-                    uint32_t k = _worldDimension.normalizedIndexOf(x, y);
+                    uint32_t k = _worldDimension.normalizedIndexOf(Platec::vec2ui(x, y));
                     pmap[j] = hmap[k] * (imap[k] == i);
                 }
             }
@@ -346,7 +332,7 @@ const uint32_t* lithosphere::getAgemap() const throw()
     return amap.raw_data();
 }
 
-float* lithosphere::getTopography() const throw()
+float* lithosphere::getTopography() throw()
 {
     return hmap.raw_data();
 }
@@ -619,18 +605,12 @@ void lithosphere::update()
 {
     try {
         _steps++;
-        float totalVelocity = 0;
-        float systemKineticEnergy = 0;
+        float totalVelocity = std::accumulate(plates,plates+ num_plates,0.f,[&](float sum, auto& plate){return sum + plate->getVelocity();} );;
+        float systemKineticEnergy = std::accumulate(plates,plates+ num_plates,0.f,[&](float sum, auto& plate){return sum + plate->getMomentum();} );
+        
 
-        for (uint32_t i = 0; i < num_plates; ++i)
-        {
-            totalVelocity += plates[i]->getVelocity();
-            systemKineticEnergy += plates[i]->getMomentum();
-        }
-
-        if (systemKineticEnergy > peak_Ek) {
-            peak_Ek = systemKineticEnergy;
-        }
+        peak_Ek = std::max(systemKineticEnergy,peak_Ek);
+        
 
         // If there's no continental collisions during past iterations,
         // then interesting activity has ceased and we should restart.
@@ -647,7 +627,7 @@ void lithosphere::update()
 
         const uint32_t map_area = _worldDimension.getArea();
         // Keep a copy of the previous index map
-        prev_imap.copy(imap);
+        prev_imap = imap;
 
         // Realize accumulated external forces to each plate.
         for (uint32_t i = 0; i < num_plates; ++i)
@@ -775,15 +755,17 @@ void lithosphere::restart()
             {
                 for (uint32_t x = x0; x < x1; ++x, ++j)
                 {
-                    const uint32_t x_mod = _worldDimension.xMod(x);
-                    const uint32_t y_mod = _worldDimension.yMod(y);
-                    const float h0 = hmap[_worldDimension.indexOf(x_mod, y_mod)];
+                    const auto index = _worldDimension.indexOf(
+                                        Platec::vec2ui(_worldDimension.xMod(x),
+                                                _worldDimension.yMod(y)));
+
+                    const float h0 = hmap[index];
                     const float h1 = this_map[j];
-                    const uint32_t a0 = amap[_worldDimension.indexOf(x_mod, y_mod)];
+                    const uint32_t a0 = amap[index];
                     const uint32_t a1 =  this_age[j];
 
-                    amap[_worldDimension.indexOf(x_mod, y_mod)] = (h0 *a0 +h1 *a1) /(h0 +h1);
-                    hmap[_worldDimension.indexOf(x_mod, y_mod)] += this_map[j];
+                    amap[index] = (h0 *a0 +h1 *a1) /(h0 +h1);
+                    hmap[index] += this_map[j];
                 }
             }
         }
@@ -815,10 +797,11 @@ void lithosphere::restart()
                 {
                     for (uint32_t x = x0; x < x1; ++x, ++j)
                     {
-                        const uint32_t x_mod = _worldDimension.xMod(x);
-                        const uint32_t y_mod = _worldDimension.yMod(y);
+                        const auto index = _worldDimension.indexOf(
+                                        Platec::vec2ui(_worldDimension.xMod(x),
+                                                _worldDimension.yMod(y)));
 
-                        this_age[j] = amap[_worldDimension.indexOf(x_mod, y_mod)];
+                        this_age[j] = amap[index];
                     }
                 }
             }
@@ -853,7 +836,7 @@ uint32_t lithosphere::getHeight() const
     return _worldDimension.getHeight();
 }
 
-uint32_t* lithosphere::getPlatesMap() const throw()
+uint32_t* lithosphere::getPlatesMap() throw()
 {
     return imap.raw_data();
 }

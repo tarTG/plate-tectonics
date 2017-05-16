@@ -20,20 +20,22 @@
 #ifndef RECTANGLE_HPP
 #define RECTANGLE_HPP
 
+#define NOMINMAX
+
 #include <cstring> // for size_t
 #include <stdexcept>
 #include "utils.hpp"
-#include "geometry.hpp"
+#include "dimension.h"
 
 using namespace std;
 
-#define BAD_INDEX 0xFFFFFFFF
+constexpr uint32_t BAD_INDEX = (std::numeric_limits<uint32_t>::max)();
 
 namespace Platec {
 
 class Rectangle {
 public:
-    Rectangle(const WorldDimension& worldDimension,
+    Rectangle(const Dimension& worldDimension,
               uint32_t left, uint32_t right,
               uint32_t top, uint32_t bottom)
         : _worldDimension(worldDimension),
@@ -106,18 +108,8 @@ public:
         _bottom += dy;
     }
 
-    bool contains(uint32_t x, uint32_t y) const
-    {
-        uint32_t cleanX = _worldDimension.xMod(x);
-        uint32_t cleanY = _worldDimension.yMod(y);
-        if (cleanX < getLeft()) cleanX += _worldDimension.getWidth();
-        if (cleanY < getTop()) cleanY += _worldDimension.getHeight();
-        return cleanX >= getLeft() && cleanX < getRight()
-               && cleanY >= getTop()  && cleanY < getBottom();
-    }
-
 private:
-    const WorldDimension _worldDimension;
+    const Dimension _worldDimension;
     uint32_t _left, _right;
     uint32_t _top, _bottom;
 };
