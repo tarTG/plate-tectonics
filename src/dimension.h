@@ -14,10 +14,14 @@
 #ifndef DIMENSION_H
 #define DIMENSION_H
 
+#define NOMINMAX
+
+
 #include <algorithm>
 #include <type_traits>
 #include "utils.hpp"
 #include "vector2D.h"
+
 
 class Dimension {
     
