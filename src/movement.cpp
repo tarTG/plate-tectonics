@@ -29,11 +29,11 @@
 #endif
 
 Movement::Movement(SimpleRandom randsource)
-    : _randsource(randsource),
+    : randSource(randsource),
       velocity(1.0),
       rot_CW(randsource.next() % 2 ? true : false)
 {
-    const double angle = 2 * M_PI * _randsource.next_double();
+    const double angle = 2.0 * M_PI * randSource.next_double();
     velVec = Platec::vec2f(cosf(angle),sinf(angle));
 }
 
@@ -74,14 +74,14 @@ void Movement::move(const Dimension& worldDimension) {
     // are finished
     velVec = velVec / len;
     
-    velocity += len - 1.0;
+    velocity += len - 1.f;
     velocity = std::max(0.f,velocity); // Round negative values to zero.
 
     // Apply some circular motion to the plate.
     // Force the radius of the circle to remain fixed by adjusting
     // angular velocity (which depends on plate's velocity).
-    const auto world_avg_side = (worldDimension.getWidth() + worldDimension.getHeight()) / 2.f;
-    const float_t alpha = velocity / (world_avg_side * 0.33);
+    const float_t world_avg_side = (worldDimension.getWidth() + worldDimension.getHeight()) / 2.f;
+    const float_t alpha = velocity / (world_avg_side * 0.33f);
     const float_t alpha_vel = (rot_CW ? 1 : -1) * alpha * velocity;
     const float_t cosVel = cosf(alpha_vel);
     const float_t sinVel = sinf(alpha_vel);
@@ -160,7 +160,7 @@ void Movement::collide(const IMass& thisMass,
     // MK: Is this a bug? collisionDirection has length 1 because it's a unit vector
     // I have kept the old code here just in case a float_t roundoff would change the map
     const float_t col_len = std::pow(collisionDirection.length(), 2);
-    const float_t denom = col_len * (1.0 / otherPlate.getMass() + 1.0 / coll_mass);
+    const float_t denom = col_len * (1.f / otherPlate.getMass() + 1.f / coll_mass);
 
     // Calculate force of impulse.
     const float_t J = -(1 + coeff_rest) * rel_dot_n / denom;
