@@ -99,8 +99,8 @@ void Movement::decImpulse(const Platec::vec2f& delta) {
     accVec = accVec - delta;
 }
 
-void Movement::setDeformationWeight(float DeformationWeight) {
-    this->DeformationWeight = DeformationWeight;
+void Movement::setDeformationWeight(float deformationWeight) {
+    this->DeformationWeight = deformationWeight;
 }
 
 float Movement::getDeformationWeight() const {

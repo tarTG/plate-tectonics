@@ -66,7 +66,7 @@ public:
 
     void addImpulse(const Platec::vec2f& impulse);
     void decImpulse(const Platec::vec2f& delta);
-    void setDeformationWeight(float DeformationWeight);
+    void setDeformationWeight(float deformationWeight);
     float getDeformationWeight() const;
 
 };
