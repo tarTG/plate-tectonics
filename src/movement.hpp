@@ -45,10 +45,10 @@ class Movement : public IMovement {
 private:
     SimpleRandom randSource;
     float_t velocity;       ///< Plate's velocity.
-    bool rot_CW;        ///< Direction of rotation: 1 = CCW, -1 = ClockWise.
+    const signed char rotDir;        ///< Direction of rotation: 1 = CCW, -1 = ClockWise.
     Platec::vec2f accVec = Platec::vec2f(0.f, 0.f);    ///< X and Y components of plate's acceleration vector.
     Platec::vec2f velVec = Platec::vec2f(0.f, 0.f); ///< X and Y components of plate's direction unit vector.
-    float DeformationWeight = 2.f;
+    float_t DeformationWeight = 2.f;
     
 public:
     Movement(SimpleRandom randsource);

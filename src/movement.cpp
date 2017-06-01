@@ -31,7 +31,7 @@
 Movement::Movement(SimpleRandom randsource)
     : randSource(randsource),
       velocity(1.0),
-      rot_CW(randsource.next() % 2 ? true : false)
+      rotDir(randsource.next() % 2 ? 1 : -1)
 {
     const double angle = 2.0 * M_PI * randSource.next_double();
     velVec = Platec::vec2f(cosf(angle),sinf(angle));
@@ -43,7 +43,7 @@ void Movement::applyFriction(float_t deformed_mass, float_t mass) {
         return;
     }
     
-    const float_t vel_dec = DeformationWeight * deformed_mass / mass;
+    const auto vel_dec = DeformationWeight * deformed_mass / mass;
     
     if(vel_dec < velocity) {
         velocity -= vel_dec;
@@ -67,7 +67,7 @@ void Movement::move(const Dimension& worldDimension) {
 
     // Force direction of plate to be unit vector.
     // Update velocity so that the distance of movement doesn't change.
-    float_t len = velVec.length();
+    auto len = velVec.length();
     ASSERT(len != 0.f, "Velocity is zero!");
     // MK: Calculating the inverse length and multiplying changes the output data for maps!
     // I have held off on optimizations like these until the more important optimizations
@@ -82,7 +82,7 @@ void Movement::move(const Dimension& worldDimension) {
     // angular velocity (which depends on plate's velocity).
     const float_t world_avg_side = (worldDimension.getWidth() + worldDimension.getHeight()) / 2.f;
     const float_t alpha = velocity / (world_avg_side * 0.33f);
-    const float_t alpha_vel = (rot_CW ? 1 : -1) * alpha * velocity;
+    const float_t alpha_vel = rotDir * alpha * velocity;
     const float_t cosVel = cosf(alpha_vel);
     const float_t sinVel = sinf(alpha_vel);
 
@@ -133,10 +133,10 @@ float_t Movement::momentum(const Mass& mass) const {
 
 void Movement::collide(const IMass& thisMass,
                        IPlate& otherPlate, float_t coll_mass) {
-    const float_t coeff_rest = 0.0; // Coefficient of restitution.
+    const auto coeff_rest = 0.f; // Coefficient of restitution.
     // 1 = fully elastic, 0 = stick together.
     const auto massCentersDistance = otherPlate.massCenter() - thisMass.massCenter();
-    const float_t distance = massCentersDistance.length();
+    const auto distance = massCentersDistance.length();
     if (distance <= 0) {
         return; // Avoid division by zero!
     }
@@ -150,7 +150,7 @@ void Movement::collide(const IMass& thisMass,
     // Get the dot product of relative velocity vector and collision vector.
     // Then get the projection of v_ab along collision vector.
     // Note that vector n must be a unit vector!
-    const float_t rel_dot_n = collisionDirection.dotProduct(relativeVelocity);
+    const auto rel_dot_n = collisionDirection.dotProduct(relativeVelocity);
     if (rel_dot_n <= 0) {
         return; // Exit if objects are moving away from each other.
     }
