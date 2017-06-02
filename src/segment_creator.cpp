@@ -100,16 +100,15 @@ ContinentId MySegmentCreator::createSegment(uint32_t x, uint32_t y) const throw(
         _segments->setId(origin_index, nbour_id);
         (*_segments)[nbour_id].incArea();
 
-        (*_segments)[nbour_id].enlarge_to_contain(x, y);
+        (*_segments)[nbour_id].enlarge_to_contain(Platec::vec2ui(x, y));
 
         return nbour_id;
     }
 
     uint32_t lines_processed;
-    Platec::Rectangle rect(_worldDimension, x, x, y, y);
-    SegmentData* pData = new SegmentData(rect, 0);
-    static vector<uint32_t>* spans_todo = NULL;
-    static vector<uint32_t>* spans_done = NULL;
+    SegmentData* pData = new SegmentData(x, x, y, y, 0);
+    static std::vector<uint32_t>* spans_todo = NULL;
+    static std::vector<uint32_t>* spans_done = NULL;
     static uint32_t spans_size = 0;
     // MK: This code was originally allocating the 2D arrays per function call.
     // This was eating up a tremendous amount of cpu.
@@ -117,8 +116,8 @@ ContinentId MySegmentCreator::createSegment(uint32_t x, uint32_t y) const throw(
     if (spans_size < bounds_height) {
         delete[] spans_todo;
         delete[] spans_done;
-        spans_todo = new vector<uint32_t>[bounds_height];
-        spans_done = new vector<uint32_t>[bounds_height];
+        spans_todo = new std::vector<uint32_t>[bounds_height];
+        spans_done = new std::vector<uint32_t>[bounds_height];
         spans_size = bounds_height;
     }
     _segments->setId(origin_index, ID);

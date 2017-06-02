@@ -24,7 +24,6 @@
 #include <cmath>     // sin, cos
 #include "simplerandom.hpp"
 #include "heightmap.hpp"
-#include "rectangle.hpp"
 #include "segment_data.hpp"
 #include "utils.hpp"
 #include "bounds.hpp"

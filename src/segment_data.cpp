@@ -19,91 +19,106 @@
 
 #include "segment_data.hpp"
 
-SegmentData::SegmentData(const Platec::Rectangle& rectangle,
-                         uint32_t area) : _rectangle(rectangle),
-    _area(area), _coll_count(0) {};
+SegmentData::SegmentData(uint32_t left, uint32_t right,
+                        uint32_t top, uint32_t bottom,
+                         uint32_t area) 
+                    : left(left), right(right), 
+                      top(top), bottom(bottom),      
+                     area(area), coll_count(0) {};
 
-void SegmentData::enlarge_to_contain(uint32_t x, uint32_t y)
+void SegmentData::enlarge_to_contain(const Platec::vec2ui& point)
 {
-    _rectangle.enlarge_to_contain(x, y);
+    if (point.y() < top) {
+        top = point.y();
+    } else if (point.y() > bottom) {
+        bottom = point.y();
+    }
+    if (point.x() < left) {
+        left = point.x();
+    } else if (point.x() > right) {
+        right = point.x();
+    }
 };
 
 uint32_t SegmentData::getLeft() const
 {
-    return _rectangle.getLeft();
+    return left;
 };
 
 uint32_t SegmentData::getRight() const
 {
-    return _rectangle.getRight();
+    return right;
 };
 
 uint32_t SegmentData::getTop() const
 {
-    return _rectangle.getTop();
+    return top;
 };
 
 uint32_t SegmentData::getBottom() const
 {
-    return _rectangle.getBottom();
+    return bottom;
 };
 
-void SegmentData::shift(uint32_t dx, uint32_t dy)
+void SegmentData::shift(const Platec::vec2ui& shiftDir)
 {
-    _rectangle.shift(dx, dy);
+    left   += shiftDir.x();
+    right  += shiftDir.x();
+    top    += shiftDir.y();
+    bottom += shiftDir.y();
 };
 
-void SegmentData::setLeft(uint32_t v)
+void SegmentData::setLeft(const uint32_t v)
 {
-    _rectangle.setLeft(v);
+    left = v;
 };
 
-void SegmentData::setRight(uint32_t v)
+void SegmentData::setRight(const uint32_t v)
 {
-    _rectangle.setRight(v);
+    right = v;
 };
 
-void SegmentData::setTop(uint32_t v)
+void SegmentData::setTop(const uint32_t v)
 {
-    _rectangle.setTop(v);
+    top = v;
 };
 
-void SegmentData::setBottom(uint32_t v)
+void SegmentData::setBottom(const uint32_t v)
 {
-    _rectangle.setBottom(v);
+    bottom = v;
 };
 
 bool SegmentData::isEmpty() const
 {
-    return _area == 0;
+    return area == 0;
 };
 
 void SegmentData::incCollCount()
 {
-    _coll_count++;
+    ++coll_count;
 };
 
 void SegmentData::incArea()
 {
-    _area++;
+    ++area;
 };
 
-void SegmentData::incArea(uint32_t amount)
+void SegmentData::incArea(const uint32_t amount)
 {
-    _area += amount;
+    area += amount;
 };
 
-uint32_t SegmentData::area() const
+uint32_t SegmentData::getArea() const
 {
-    return _area;
+    return area;
 };
 
 uint32_t SegmentData::collCount() const
 {
-    return _coll_count;
+    return coll_count;
 }
 
 void SegmentData::markNonExistent()
 {
-    _area = 0;
+    area = 0;
 }

@@ -17,13 +17,15 @@
  *  License along with this library; if not, see http://www.gnu.org/licenses/
  *****************************************************************************/
 
+#include <cstring>
 #include "segments.hpp"
+
 
 Segments::Segments(uint32_t plate_area)
 {
     _area = plate_area;
     segment = new uint32_t[plate_area];
-    memset(segment, 255, plate_area * sizeof(uint32_t));
+    std::memset(segment, 255, plate_area * sizeof(uint32_t));
 }
 
 Segments::~Segments()
@@ -43,7 +45,7 @@ uint32_t Segments::area()
 
 void Segments::reset()
 {
-    memset(segment, -1, sizeof(uint32_t) * _area);
+    std::memset(segment, -1, sizeof(uint32_t) * _area);
     seg_data.clear();
 }
 
@@ -58,7 +60,7 @@ void Segments::shift(uint32_t d_lft, uint32_t d_top)
 {
     for (uint32_t s = 0; s < seg_data.size(); ++s)
     {
-        seg_data[s]->shift(d_lft, d_top);
+        seg_data[s]->shift(Platec::vec2ui(d_lft, d_top));
     }
 }
 
