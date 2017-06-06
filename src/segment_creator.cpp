@@ -106,7 +106,7 @@ ContinentId MySegmentCreator::createSegment(uint32_t x, uint32_t y) const throw(
     }
 
     uint32_t lines_processed;
-    SegmentData* pData = new SegmentData(x, x, y, y, 0);
+    SegmentData* pData = new SegmentData(Platec::vec2ui(x, y),Platec::vec2ui(x, y), 0);
     static std::vector<uint32_t>* spans_todo = NULL;
     static std::vector<uint32_t>* spans_done = NULL;
     static uint32_t spans_size = 0;

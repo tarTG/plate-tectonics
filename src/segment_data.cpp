@@ -19,73 +19,71 @@
 
 #include "segment_data.hpp"
 
-SegmentData::SegmentData(uint32_t left, uint32_t right,
-                        uint32_t top, uint32_t bottom,
+SegmentData::SegmentData(const Platec::vec2ui& pointLeftTop,
+                        const Platec::vec2ui& pointRightBottom,
                          uint32_t area) 
-                    : left(left), right(right), 
-                      top(top), bottom(bottom),      
+                    : pointLeftTop(pointLeftTop), 
+                      pointRightBottom(pointRightBottom),      
                      area(area), coll_count(0) {};
 
 void SegmentData::enlarge_to_contain(const Platec::vec2ui& point)
 {
-    if (point.y() < top) {
-        top = point.y();
-    } else if (point.y() > bottom) {
-        bottom = point.y();
+    if (point.y() < getTop()) {
+        pointLeftTop = Platec::vec2ui(getLeft(), point.y());
+    } else if (point.y() > getBottom()) {
+        pointRightBottom = Platec::vec2ui(getRight(), point.y());
     }
-    if (point.x() < left) {
-        left = point.x();
-    } else if (point.x() > right) {
-        right = point.x();
+    if (point.x() < getLeft()) {
+        pointLeftTop = Platec::vec2ui( point.x(),getTop());
+    } else if (point.x() > getRight()) {
+         pointRightBottom = Platec::vec2ui( point.x(),getBottom());
     }
 };
 
 uint32_t SegmentData::getLeft() const
 {
-    return left;
+    return pointLeftTop.x();
 };
 
 uint32_t SegmentData::getRight() const
 {
-    return right;
+    return pointRightBottom.x();
 };
 
 uint32_t SegmentData::getTop() const
 {
-    return top;
+    return pointLeftTop.y();
 };
 
 uint32_t SegmentData::getBottom() const
 {
-    return bottom;
+    return pointRightBottom.y();
 };
 
 void SegmentData::shift(const Platec::vec2ui& shiftDir)
 {
-    left   += shiftDir.x();
-    right  += shiftDir.x();
-    top    += shiftDir.y();
-    bottom += shiftDir.y();
+    pointRightBottom.shift(shiftDir);
+    pointLeftTop.shift(shiftDir);
 };
 
 void SegmentData::setLeft(const uint32_t v)
 {
-    left = v;
+    pointLeftTop = Platec::vec2ui(v, getTop());
 };
 
 void SegmentData::setRight(const uint32_t v)
 {
-    right = v;
+    pointRightBottom = Platec::vec2ui(v, getBottom());
 };
 
 void SegmentData::setTop(const uint32_t v)
 {
-    top = v;
+    pointLeftTop = Platec::vec2ui(getLeft(),v);
 };
 
 void SegmentData::setBottom(const uint32_t v)
 {
-    bottom = v;
+    pointRightBottom = Platec::vec2ui(getRight(),v);
 };
 
 bool SegmentData::isEmpty() const

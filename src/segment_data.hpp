@@ -48,33 +48,34 @@ public:
 /// Container for details about a segmented crust area on this plate.
 class SegmentData : public ISegmentData
 {
+private:
+    Platec::vec2ui pointLeftTop = Platec::vec2ui(0,0);
+    Platec::vec2ui pointRightBottom = Platec::vec2ui(0,0);
+    uint32_t area; ///< Number of locations this area consists of.
+    uint32_t coll_count; ///< Number of collisions on this segment.    
 public:
-    SegmentData(const uint32_t left, const uint32_t right,
-                const uint32_t top, const uint32_t bottom,
+    SegmentData(const Platec::vec2ui& pointLeftTop,
+                const Platec::vec2ui& pointRightBottom,
                 uint32_t area);
 
-    void enlarge_to_contain(const Platec::vec2ui& point);
-    uint32_t getLeft() const;
-    uint32_t getRight() const;
-    uint32_t getTop() const;
+    void enlarge_to_contain(const Platec::vec2ui& point) override;
+    uint32_t getLeft() const override;
+    uint32_t getRight() const override;
+    uint32_t getTop() const override;
     uint32_t getBottom() const;
-    void shift(const Platec::vec2ui& shiftDir);
+    void shift(const Platec::vec2ui& shiftDir) override;
     void setLeft(const uint32_t v);
     void setRight(const uint32_t v);
     void setTop(const uint32_t v);
     void setBottom(const uint32_t v);
-    bool isEmpty() const;
-    void incCollCount();
-    void incArea();
+    bool isEmpty() const override;
+    void incCollCount() override;
+    void incArea() override;
     void incArea(const uint32_t amount);
-    uint32_t getArea() const;
-    uint32_t collCount() const;
-    void markNonExistent();
-private:
-    uint32_t area; ///< Number of locations this area consists of.
-    uint32_t coll_count; ///< Number of collisions on this segment.
-    uint32_t left, right;
-    uint32_t top, bottom;
+    uint32_t getArea() const override;
+    uint32_t collCount() const override;
+    void markNonExistent() override;
+
 };
 
 #endif
