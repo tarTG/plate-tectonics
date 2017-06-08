@@ -35,19 +35,14 @@ class ISegments;
 class ISegmentCreator
 {
 public:
-    virtual ContinentId createSegment(uint32_t wx, uint32_t wy) const = 0;
+    virtual ContinentId createSegment(const Platec::vec2ui& point, 
+                                    const Dimension& worldDimension) const = 0;
 };
 
 class MySegmentCreator : public ISegmentCreator
 {
 public:
-    MySegmentCreator(Bounds& bounds, ISegments* segments, HeightMap& map_,
-                     const Dimension& worldDimension)
-        : _bounds(bounds), _segments(segments), map(map_),
-          _worldDimension(worldDimension)
-    {
-
-    }
+    MySegmentCreator(Bounds& bounds, ISegments* segments, HeightMap& map_);
     /// Separate a continent at (X, Y) to its own partition.
     ///
     /// Method analyzes the pixels 4-ways adjacent at the given location
@@ -56,14 +51,22 @@ public:
     /// @param	x	Offset on the local height map along X axis.
     /// @param	y	Offset on the local height map along Y axis.
     /// @return	ID of created segment on success, otherwise -1.
-    ContinentId createSegment(uint32_t wx, uint32_t wy) const throw();
+    ContinentId createSegment(const Platec::vec2ui& point, 
+                                    const Dimension& worldDimension) const;
 private:
-    uint32_t calcDirection(uint32_t x, uint32_t y, const uint32_t origin_index, const uint32_t ID) const;
+    uint32_t calcDirection(const Platec::vec2ui& point, const uint32_t origin_index, const uint32_t ID) const;
     void scanSpans(const uint32_t line, uint32_t& start, uint32_t& end,
                    std::vector<uint32_t>* spans_todo, std::vector<uint32_t>* spans_done) const;
-    const Dimension _worldDimension;
-    Bounds& _bounds;
-    ISegments* _segments;
+    
+    const uint32_t getLeftIndex(const int32_t originIndex) const;
+    const uint32_t getRightIndex(const int32_t originIndex) const;
+    const uint32_t getTopIndex(const int32_t originIndex) const;
+    const uint32_t getBottomIndex(const int32_t originIndex) const;
+
+    const bool hasLowerID(const uint32_t index, const ContinentId ID) const;
+    
+    Bounds& bounds;
+    ISegments* segments;
     HeightMap& map;
 
 };

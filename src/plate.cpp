@@ -62,7 +62,7 @@ plate::plate(long seed, float* m, uint32_t w, uint32_t h, uint32_t _x, uint32_t 
     }
     Segments* segments = new Segments(plate_area);
     _segments = segments;
-    _mySegmentCreator = new MySegmentCreator(*_bounds, _segments, map, _worldDimension);
+    _mySegmentCreator = new MySegmentCreator(*_bounds, _segments, map);
     segments->setSegmentCreator(_mySegmentCreator);
     segments->setBounds(_bounds);
 }
@@ -608,10 +608,10 @@ void plate::setCrust(uint32_t x, uint32_t y, float z, uint32_t t)
 
         map     = tmph;
         age_map = tmpa;
-        _segments->reassign(_bounds->area(), tmps);
+        _segments->reassign(_bounds->area(),std::vector<uint32_t>(tmps, tmps +_bounds->area()));
 
         // Shift all segment data to match new coordinates.
-        _segments->shift(d_lft, d_top);
+        _segments->shift(Platec::vec2ui(d_lft, d_top));
 
 
         index = _bounds->getValidMapIndex(Platec::vec2ui(x, y));
@@ -646,15 +646,15 @@ ContinentId plate::selectCollisionSegment(uint32_t coll_x, uint32_t coll_y)
 
 uint32_t plate::createSegment(uint32_t x, uint32_t y) throw()
 {
-    return _mySegmentCreator->createSegment(x, y);
+    return _mySegmentCreator->createSegment(Platec::vec2ui(x, y),_worldDimension);
 }
 
 ISegmentData& plate::getContinentAt(int x, int y)
 {
-    return (*_segments)[_segments->getContinentAt(x, y)];
+    return (*_segments)[_segments->getContinentAt(Platec::vec2ui(x, y),_worldDimension)];
 }
 
 const ISegmentData& plate::getContinentAt(int x, int y) const
 {
-    return (*_segments)[_segments->getContinentAt(x, y)];
+    return (*_segments)[_segments->getContinentAt(Platec::vec2ui(x, y),_worldDimension)];
 }

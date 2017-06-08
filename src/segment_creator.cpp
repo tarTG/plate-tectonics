@@ -17,33 +17,37 @@
  *  License along with this library; if not, see http://www.gnu.org/licenses/
  *****************************************************************************/
 
+#include <memory>
+
 #include "segment_creator.hpp"
 #include "movement.hpp"
 #include "segments.hpp"
 #include "bounds.hpp"
 
-uint32_t MySegmentCreator::calcDirection(uint32_t x, uint32_t y, const uint32_t origin_index, const uint32_t ID) const
-{
-    uint32_t canGoLeft  = x > 0          && map[origin_index - 1]     >= CONT_BASE;
-    uint32_t canGoRight = x < _bounds.width() - 1  && map[origin_index+1]       >= CONT_BASE;
-    uint32_t canGoUp    = y > 0          && map[origin_index - _bounds.width()] >= CONT_BASE;
-    uint32_t canGoDown  = y < _bounds.height() - 1 && map[origin_index + _bounds.width()] >= CONT_BASE;
-    uint32_t nbour_id = ID;
+MySegmentCreator::MySegmentCreator(Bounds& bounds, ISegments* segments, HeightMap& map_)
+: bounds(bounds), segments(segments), map(map_) {
 
-    // This point belongs to no segment yet.
-    // However it might be a neighbour to some segment created earlier.
-    // If such neighbour is found, associate this point with it.
-    if (canGoLeft && _segments->id(origin_index - 1) < ID) {
-        nbour_id = _segments->id(origin_index - 1);
-    } else if (canGoRight && _segments->id(origin_index + 1) < ID) {
-        nbour_id = _segments->id(origin_index + 1);
-    } else if (canGoUp && _segments->id(origin_index - _bounds.width()) < ID) {
-        nbour_id = _segments->id(origin_index - _bounds.width());
-    } else if (canGoDown && _segments->id(origin_index + _bounds.width()) < ID) {
-        nbour_id = _segments->id(origin_index + _bounds.width());
+}
+
+
+uint32_t MySegmentCreator::calcDirection(const Platec::vec2ui& point, const uint32_t origin_index, const uint32_t ID) const
+{
+    if(bounds.isInLimits(point))
+    {
+        return ID;
     }
 
-    return nbour_id;
+    if (hasLowerID(getLeftIndex(origin_index),ID)) {
+        return segments->id(getLeftIndex(origin_index));
+    } else if (hasLowerID(getRightIndex(origin_index),ID)) {
+        return segments->id(getRightIndex(origin_index));
+    } else if (hasLowerID(getTopIndex(origin_index),ID)) {
+       return segments->id(getTopIndex(origin_index));
+    } else if (hasLowerID(getBottomIndex(origin_index),ID)) {
+      return segments->id(getBottomIndex(origin_index));
+    }
+
+    return ID;
 }
 
 void MySegmentCreator::scanSpans(const uint32_t line, uint32_t& start, uint32_t& end,
@@ -76,37 +80,38 @@ void MySegmentCreator::scanSpans(const uint32_t line, uint32_t& start, uint32_t&
 
         // Unsigned-ness hacking!
         // Required to fix the underflow of end - 1.
-        start |= -(end >= _bounds.width());
-        end -= (end >= _bounds.width());
+        start |= -(end >= bounds.width());
+        end -= (end >= bounds.width());
 
     } while (start > end && spans_todo[line].size());
 }
 
-ContinentId MySegmentCreator::createSegment(uint32_t x, uint32_t y) const throw()
+ContinentId MySegmentCreator::createSegment(const Platec::vec2ui& point, 
+                                    const Dimension& worldDimension) const
 {
-    const uint32_t bounds_width = _bounds.width();
-    const uint32_t bounds_height = _bounds.height();
-    const uint32_t origin_index = _bounds.index(Platec::vec2ui(x, y));
-    const uint32_t ID = _segments->size();
+    const uint32_t bounds_width = bounds.width();
+    const uint32_t bounds_height = bounds.height();
+    const uint32_t origin_index = bounds.index(point);
+    const uint32_t ID = segments->size();
 
-    if (_segments->id(origin_index) < ID) {
-        return _segments->id(origin_index);
+    if (segments->id(origin_index) < ID) {
+        return segments->id(origin_index);
     }
 
-    uint32_t nbour_id = calcDirection(x, y, origin_index, ID);
+    uint32_t nbour_id = calcDirection(point, origin_index, ID);
 
     if (nbour_id < ID)
     {
-        _segments->setId(origin_index, nbour_id);
-        (*_segments)[nbour_id].incArea();
+        segments->setId(origin_index, nbour_id);
+        (*segments)[nbour_id].incArea();
 
-        (*_segments)[nbour_id].enlarge_to_contain(Platec::vec2ui(x, y));
+        (*segments)[nbour_id].enlarge_to_contain(point);
 
         return nbour_id;
     }
 
     uint32_t lines_processed;
-    SegmentData* pData = new SegmentData(Platec::vec2ui(x, y),Platec::vec2ui(x, y), 0);
+    SegmentData* pData = new SegmentData(point,point, 0);
     static std::vector<uint32_t>* spans_todo = NULL;
     static std::vector<uint32_t>* spans_done = NULL;
     static uint32_t spans_size = 0;
@@ -120,9 +125,9 @@ ContinentId MySegmentCreator::createSegment(uint32_t x, uint32_t y) const throw(
         spans_done = new std::vector<uint32_t>[bounds_height];
         spans_size = bounds_height;
     }
-    _segments->setId(origin_index, ID);
-    spans_todo[y].push_back(x);
-    spans_todo[y].push_back(x);
+    segments->setId(origin_index, ID);
+    spans_todo[point.y()].push_back(point.x());
+    spans_todo[point.y()].push_back(point.x());
 
     do
     {
@@ -148,32 +153,32 @@ ContinentId MySegmentCreator::createSegment(uint32_t x, uint32_t y) const throw(
             const uint32_t line_below = row_below * bounds_width;
 
             // Extend the beginning of line.
-            while (start > 0 && _segments->id(line_here+start-1) > ID &&
+            while (start > 0 && segments->id(line_here+start-1) > ID &&
                     map[line_here+start-1] >= CONT_BASE)
             {
                 --start;
-                _segments->setId(line_here + start, ID);
+                segments->setId(line_here + start, ID);
 
                 // Count volume of pixel...
             }
 
             // Extend the end of line.
             while (end < bounds_width - 1 &&
-                    _segments->id(line_here + end + 1) > ID &&
+                    segments->id(line_here + end + 1) > ID &&
                     map[line_here + end + 1] >= CONT_BASE)
             {
                 ++end;
-                _segments->setId(line_here + end, ID);
+                segments->setId(line_here + end, ID);
 
                 // Count volume of pixel...
             }
 
             // Check if should wrap around left edge.
-            if (bounds_width == _worldDimension.getWidth() && start == 0 &&
-                    _segments->id(line_here+bounds_width-1) > ID &&
+            if (bounds_width == worldDimension.getWidth() && start == 0 &&
+                    segments->id(line_here+bounds_width-1) > ID &&
                     map[line_here+bounds_width-1] >= CONT_BASE)
             {
-                _segments->setId(line_here + bounds_width - 1, ID);
+                segments->setId(line_here + bounds_width - 1, ID);
                 spans_todo[line].push_back(bounds_width - 1);
                 spans_todo[line].push_back(bounds_width - 1);
 
@@ -181,11 +186,11 @@ ContinentId MySegmentCreator::createSegment(uint32_t x, uint32_t y) const throw(
             }
 
             // Check if should wrap around right edge.
-            if (bounds_width == _worldDimension.getWidth() && end == bounds_width - 1 &&
-                    _segments->id(line_here+0) > ID &&
+            if (bounds_width == worldDimension.getWidth() && end == bounds_width - 1 &&
+                    segments->id(line_here+0) > ID &&
                     map[line_here+0] >= CONT_BASE)
             {
-                _segments->setId(line_here + 0, ID);
+                segments->setId(line_here + 0, ID);
                 spans_todo[line].push_back(0);
                 spans_todo[line].push_back(0);
 
@@ -200,21 +205,21 @@ ContinentId MySegmentCreator::createSegment(uint32_t x, uint32_t y) const throw(
             if (start < pData->getLeft()) pData->setLeft(start);
             if (end > pData->getRight()) pData->setRight(end);
 
-            if (line > 0 || bounds_height == _worldDimension.getHeight()) {
+            if (line > 0 || bounds_height == worldDimension.getHeight()) {
                 for (uint32_t j = start; j <= end; ++j)
-                    if (_segments->id(line_above + j) > ID &&
+                    if (segments->id(line_above + j) > ID &&
                             map[line_above + j] >= CONT_BASE)
                     {
                         uint32_t a = j;
-                        _segments->setId(line_above + a, ID);
+                        segments->setId(line_above + a, ID);
 
                         // Count volume of pixel...
 
                         while (++j < bounds_width &&
-                                _segments->id(line_above + j) > ID &&
+                                segments->id(line_above + j) > ID &&
                                 map[line_above + j] >= CONT_BASE)
                         {
-                            _segments->setId(line_above + j, ID);
+                            segments->setId(line_above + j, ID);
 
                             // Count volume of pixel...
                         }
@@ -227,21 +232,21 @@ ContinentId MySegmentCreator::createSegment(uint32_t x, uint32_t y) const throw(
                     }
             }
 
-            if (line < bounds_height - 1 || bounds_height == _worldDimension.getHeight()) {
+            if (line < bounds_height - 1 || bounds_height == worldDimension.getHeight()) {
                 for (uint32_t j = start; j <= end; ++j)
-                    if (_segments->id(line_below + j) > ID &&
+                    if (segments->id(line_below + j) > ID &&
                             map[line_below + j] >= CONT_BASE)
                     {
                         uint32_t a = j;
-                        _segments->setId(line_below + a, ID);
+                        segments->setId(line_below + a, ID);
 
                         // Count volume of pixel...
 
                         while (++j < bounds_width &&
-                                _segments->id(line_below + j) > ID &&
+                                segments->id(line_below + j) > ID &&
                                 map[line_below + j] >= CONT_BASE)
                         {
-                            _segments->setId(line_below + j, ID);
+                            segments->setId(line_below + j, ID);
 
                             // Count volume of pixel...
                         }
@@ -264,7 +269,29 @@ ContinentId MySegmentCreator::createSegment(uint32_t x, uint32_t y) const throw(
         spans_todo[line].clear();
         spans_done[line].clear();
     }
-    _segments->add(pData);
+    segments->add(*pData);
 
     return ID;
+}
+
+const uint32_t MySegmentCreator::getBottomIndex(const int32_t originIndex) const {
+    return originIndex + bounds.width();
+}
+
+const uint32_t MySegmentCreator::getLeftIndex(const int32_t originIndex) const {
+    return originIndex-1;
+}
+
+const uint32_t MySegmentCreator::getRightIndex(const int32_t originIndex) const {
+    return originIndex+1;
+}
+
+const uint32_t MySegmentCreator::getTopIndex(const int32_t originIndex) const {
+    return originIndex - bounds.width();
+}
+
+const bool MySegmentCreator::hasLowerID(const uint32_t index, const ContinentId ID) const {
+    //check if the value of the index is higher than CONT_BASE and
+    //if ID is lower than the given ID
+    return map[index] >= CONT_BASE && segments->id(index) < ID;
 }

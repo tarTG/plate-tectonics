@@ -188,19 +188,19 @@ public:
     {
 
     }
-    virtual uint32_t area() {
+    virtual const uint32_t area() const {
         throw std::runtime_error("Not implemented");
     }
     virtual void reset() {
         throw std::runtime_error("Not implemented");
     }
-    virtual void reassign(uint32_t newarea, uint32_t* tmps) {
+    virtual void reassign(const uint32_t newarea,const std::vector<uint32_t>& tmps) {
         throw std::runtime_error("Not implemented");
     }
-    virtual void shift(uint32_t d_lft, uint32_t d_top) {
+    virtual void shift(const Platec::vec2ui& dir) {
         throw std::runtime_error("Not implemented");
     }
-    virtual uint32_t size() const {
+    virtual const uint32_t size() const {
         throw std::runtime_error("(MockSegments::size) Not implemented");
     }
     virtual const ISegmentData& operator[](uint32_t index) const {
@@ -217,7 +217,7 @@ public:
             throw std::runtime_error("(MockSegments::operator[]) Unexpected call");
         }
     }
-    virtual void add(ISegmentData* data) {
+    virtual void add(const SegmentData& data) {
         throw std::runtime_error("Not implemented");
     }
     virtual const ContinentId& id(uint32_t index) const {
@@ -229,8 +229,9 @@ public:
     virtual void setId(uint32_t index, ContinentId id) {
         throw std::runtime_error("Not implemented");
     }
-    virtual ContinentId getContinentAt(int x, int y) const {
-        if (x==_p.x() && y==_p.y()) {
+    virtual ContinentId getContinentAt(const Platec::vec2ui& point,
+                                    const Dimension& worldDimension) const {
+        if (_p == point) {
             return _id;
         } else {
             throw std::runtime_error("(MockSegments::getContinentAt) Unexpected call");
@@ -266,19 +267,19 @@ public:
     {
 
     }
-    virtual uint32_t area() {
+    virtual const uint32_t area() const{
         throw std::runtime_error("(MockSegments2::area) Not implemented");
     }
     virtual void reset() {
         throw std::runtime_error("(MockSegments2::reset) Not implemented");
     }
-    virtual void reassign(uint32_t newarea, uint32_t* tmps) {
+    virtual void reassign(const uint32_t newarea,const std::vector<uint32_t>& tmps) {
         throw std::runtime_error("(MockSegments2::reassign) Not implemented");
     }
-    virtual void shift(uint32_t d_lft, uint32_t d_top) {
+    virtual void shift(const Platec::vec2ui& dir) {
         throw std::runtime_error("(MockSegments2::shift) Not implemented");
     }
-    virtual uint32_t size() const {
+    virtual const uint32_t size() const {
         throw std::runtime_error("(MockSegments2::size) Not implemented");
     }
     virtual const ISegmentData& operator[](uint32_t index) const {
@@ -296,7 +297,7 @@ public:
                                        + Platec::to_string(id)));
         }
     }
-    virtual void add(ISegmentData* data) {
+    virtual void add(const SegmentData& data) {
         throw std::runtime_error("(MockSegments2::add) Not implemented");
     }
     virtual const ContinentId& id(uint32_t index) const {
@@ -323,8 +324,9 @@ public:
                                 + Platec::to_string(index));
         }
     }
-    virtual ContinentId getContinentAt(int x, int y) const {
-        if (x==_p.x() && y==_p.y()) {
+    virtual ContinentId getContinentAt(const Platec::vec2ui& point,
+                                    const Dimension& worldDimension) const {
+        if (_p == point) {
             return _id;
         } else {
             throw std::runtime_error("(MockSegments2::getContinentAt) Unexpected call");
@@ -382,7 +384,8 @@ TEST(Plate, addCrustByCollision)
     EXPECT_FLOAT_EQ(crustIn_240_120before + 0.8f, crustIn_240_120after);
 
     // The activeContinent should now owns the point
-    EXPECT_EQ(99, mSegments->getContinentAt(worldPointX, worldPointY));
+    EXPECT_EQ(99, mSegments->getContinentAt(Platec::vec2ui(worldPointX, worldPointY),
+                                                wd));
 
     // The activeContinent should contains the point
  //   ASSERT_EQ(false, NULL==mSeg->enlargedPoint());
