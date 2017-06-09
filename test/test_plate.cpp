@@ -188,7 +188,7 @@ public:
     {
 
     }
-    virtual const uint32_t area() const {
+    virtual const uint32_t getArea() const {
         throw std::runtime_error("Not implemented");
     }
     virtual void reset() {
@@ -267,7 +267,7 @@ public:
     {
 
     }
-    virtual const uint32_t area() const{
+    virtual const uint32_t getArea() const{
         throw std::runtime_error("(MockSegments2::area) Not implemented");
     }
     virtual void reset() {

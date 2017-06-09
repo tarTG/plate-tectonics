@@ -36,7 +36,7 @@ typedef uint32_t ContinentId;
 class ISegments
 {
 public:
-    virtual const uint32_t area() const = 0;
+    virtual const uint32_t getArea() const = 0;
     virtual void reset() = 0;
     virtual void reassign(const uint32_t newarea,const std::vector<uint32_t>& tmps) = 0;
     virtual void shift(const Platec::vec2ui& dir) = 0;
@@ -58,15 +58,15 @@ class Segments : public ISegments
 private:
     std::vector<SegmentData> seg_data; ///< Details of each crust segment.
     std::vector<ContinentId> segment;              ///< Segment ID of each piece of continental crust.
-    uint32_t _area; /// Should be the same as the bounds area of the plate
-    ISegmentCreator* _segmentCreator;
-    Bounds* _bounds;    
+    uint32_t area; /// Should be the same as the bounds area of the plate
+    ISegmentCreator* segmentCreator;
+    Bounds* bounds;    
     
 public:
     Segments(uint32_t plate_area);
     void setSegmentCreator(ISegmentCreator* segmentCreator);
     void setBounds(Bounds* bounds);
-    const uint32_t area() const override;
+    const uint32_t getArea() const override;
     void reset() override;
     void reassign(const uint32_t newarea,const std::vector<uint32_t>& tmps) override;
     void shift(const Platec::vec2ui& dir) override;

@@ -517,7 +517,7 @@ void plate::move(const Dimension& worldDimension)
 
 void plate::resetSegments()
 {
-    ASSERT(_bounds->area() == _segments->area(), "Segments doesn't have the expected area");
+    ASSERT(_bounds->area() == _segments->getArea(), "Segments doesn't have the expected area");
     _segments->reset();
 }
 

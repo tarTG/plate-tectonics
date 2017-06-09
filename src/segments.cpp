@@ -21,25 +21,25 @@
 #include "segments.hpp"
 
 
-Segments::Segments(uint32_t plate_area) : _area(plate_area),
+Segments::Segments(uint32_t plate_area) : area(plate_area),
         segment(std::vector<uint32_t>(plate_area,255))
 {
 }
 
-const uint32_t Segments::area() const
+const uint32_t Segments::getArea() const
 {
-    return _area;
+    return area;
 }
 
 void Segments::reset()
 {
     seg_data.clear();
-    std::vector<uint32_t>(_area,-1).swap(segment);
+    std::vector<uint32_t>(area,-1).swap(segment);
 }
 
 void Segments::reassign(const uint32_t newarea,const std::vector<uint32_t>& tmps)
 {
-    _area = newarea;
+    area = newarea;
     segment = std::move(tmps);
 }
 
@@ -74,7 +74,7 @@ ContinentId Segments::getContinentAt(const Platec::vec2ui& point,
                                        const Dimension& worldDimension) const
 {
 
-    auto index = _bounds->getValidMapIndex(point);
+    auto index = bounds->getValidMapIndex(point);
     ContinentId seg = id(index.first);
 
     if (seg >= size()) {
@@ -82,7 +82,7 @@ ContinentId Segments::getContinentAt(const Platec::vec2ui& point,
         // something that we would calculate anyway, so the segments are
         // a sort of cache
         //seg = const_cast<plate*>(this)->createSegment(lx, ly);
-        seg = _segmentCreator->createSegment(index.second,worldDimension);
+        seg = segmentCreator->createSegment(index.second,worldDimension);
     }
 
     ASSERT(seg < size(), "Could not create segment");
@@ -98,7 +98,7 @@ ContinentId& Segments::id(const uint32_t index) {
 }
 
 void Segments::setBounds(Bounds* bounds) {
-    _bounds = bounds;
+    this->bounds = bounds;
 }
 
 void Segments::setId(const uint32_t index, const ContinentId id) {
@@ -106,6 +106,6 @@ void Segments::setId(const uint32_t index, const ContinentId id) {
 }
 
 void Segments::setSegmentCreator(ISegmentCreator* segmentCreator) {
-    _segmentCreator = segmentCreator;
+    this->segmentCreator = segmentCreator;
 }
 
