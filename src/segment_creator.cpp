@@ -50,40 +50,43 @@ uint32_t MySegmentCreator::calcDirection(const Platec::vec2ui& point, const uint
     return ID;
 }
 
-void MySegmentCreator::scanSpans(const uint32_t line, uint32_t& start, uint32_t& end,
-                                 std::vector<uint32_t>* spans_todo, std::vector<uint32_t>* spans_done) const
+Span MySegmentCreator::scanSpans(std::vector<uint32_t>& spans_todo, std::vector<uint32_t>& spans_done) const
 {
+    Span span;
     do // Find an unscanned span on this line.
     {
-        end = spans_todo[line].back();
-        spans_todo[line].pop_back();
+        span.end = spans_todo.back();
+        spans_todo.pop_back();
 
-        start = spans_todo[line].back();
-        spans_todo[line].pop_back();
+        span.start = spans_todo.back();
+        spans_todo.pop_back();
 
         // Reduce any done spans from this span.
-        for (uint32_t j = 0; j < spans_done[line].size();
+        for (uint32_t j = 0; j < spans_done.size();
                 j += 2)
         {
             // Saved coordinates are AT the point
             // that was included last to the span.
             // That's why equalities matter.
 
-            if (start >= spans_done[line][j] &&
-                    start <= spans_done[line][j+1])
-                start = spans_done[line][j+1] + 1;
+            if (span.start >= spans_done[j] &&
+                    span.start <= spans_done[j+1])
+                span.start = getRightIndex(spans_done[j+1]);
 
-            if (end >= spans_done[line][j] &&
-                    end <= spans_done[line][j+1])
-                end = spans_done[line][j] - 1;
+            if (span.end >= spans_done[j] &&
+                    span.end <= spans_done[j+1])
+                span.end = getLeftIndex(spans_done[j]);
         }
 
-        // Unsigned-ness hacking!
-        // Required to fix the underflow of end - 1.
-        start |= -(end >= bounds.width());
-        end -= (end >= bounds.width());
 
-    } while (start > end && spans_todo[line].size());
+        // Required to fix the underflow of end - 1.
+        if(span.end >= bounds.width())
+        {
+            span.start = std::numeric_limits<uint32_t>::max();
+            --span.end;
+        }
+    } while (span.notValid() && spans_todo.size());
+    return span;
 }
 
 ContinentId MySegmentCreator::createSegment(const Platec::vec2ui& point, 
@@ -111,7 +114,7 @@ ContinentId MySegmentCreator::createSegment(const Platec::vec2ui& point,
     }
 
     uint32_t lines_processed;
-    SegmentData* pData = new SegmentData(point,point, 0);
+    SegmentData pData = SegmentData(point,point, 0);
     static std::vector<uint32_t>* spans_todo = NULL;
     static std::vector<uint32_t>* spans_done = NULL;
     static uint32_t spans_size = 0;
@@ -134,16 +137,15 @@ ContinentId MySegmentCreator::createSegment(const Platec::vec2ui& point,
         lines_processed = 0;
         for (uint32_t line = 0; line < bounds_height; ++line)
         {
-            uint32_t start, end;
-
+            
             if (spans_todo[line].empty())
                 continue;
 
-            scanSpans(line, start, end, spans_todo, spans_done);
+            Span span = scanSpans(spans_todo[line], spans_done[line]);
 
-            if (start > end) // Nothing to do here anymore...
+            if (span.notValid()) // Nothing to do here anymore...
                 continue;
-
+                        
             // Calculate line indices. Allow wrapping around map edges.
             const uint32_t row_above = ((line - 1) & -(line > 0)) |
                                        ((bounds_height - 1) & -(line == 0));
@@ -153,28 +155,28 @@ ContinentId MySegmentCreator::createSegment(const Platec::vec2ui& point,
             const uint32_t line_below = row_below * bounds_width;
 
             // Extend the beginning of line.
-            while (start > 0 && segments->id(line_here+start-1) > ID &&
-                    map[line_here+start-1] >= CONT_BASE)
+            while (span.start != 0 && segments->id(line_here+span.start-1) > ID &&
+                    map[line_here+span.start-1] >= CONT_BASE)
             {
-                --start;
-                segments->setId(line_here + start, ID);
+                --span.start;
+                segments->setId(line_here + span.start, ID);
 
                 // Count volume of pixel...
             }
 
             // Extend the end of line.
-            while (end < bounds_width - 1 &&
-                    segments->id(line_here + end + 1) > ID &&
-                    map[line_here + end + 1] >= CONT_BASE)
+            while (span.end < bounds_width - 1 &&
+                    segments->id(line_here + span.end + 1) > ID &&
+                    map[line_here + span.end + 1] >= CONT_BASE)
             {
-                ++end;
-                segments->setId(line_here + end, ID);
+                ++span.end;
+                segments->setId(line_here + span.end, ID);
 
                 // Count volume of pixel...
             }
 
             // Check if should wrap around left edge.
-            if (bounds_width == worldDimension.getWidth() && start == 0 &&
+            if (bounds_width == worldDimension.getWidth() && span.start == 0 &&
                     segments->id(line_here+bounds_width-1) > ID &&
                     map[line_here+bounds_width-1] >= CONT_BASE)
             {
@@ -186,7 +188,7 @@ ContinentId MySegmentCreator::createSegment(const Platec::vec2ui& point,
             }
 
             // Check if should wrap around right edge.
-            if (bounds_width == worldDimension.getWidth() && end == bounds_width - 1 &&
+            if (bounds_width == worldDimension.getWidth() && span.end == bounds_width - 1 &&
                     segments->id(line_here+0) > ID &&
                     map[line_here+0] >= CONT_BASE)
             {
@@ -197,16 +199,16 @@ ContinentId MySegmentCreator::createSegment(const Platec::vec2ui& point,
                 // Count volume of pixel...
             }
 
-            pData->incArea(1 + end - start); // Update segment area counter.
+            pData.incArea(1 + span.end - span.start); // Update segment area counter.
 
             // Record any changes in extreme dimensions.
-            if (line < pData->getTop()) pData->setTop(line);
-            if (line > pData->getBottom()) pData->setBottom(line);
-            if (start < pData->getLeft()) pData->setLeft(start);
-            if (end > pData->getRight()) pData->setRight(end);
+            if (line < pData.getTop()) pData.setTop(line);
+            if (line > pData.getBottom()) pData.setBottom(line);
+            if (span.start < pData.getLeft()) pData.setLeft(span.start);
+            if (span.end > pData.getRight()) pData.setRight(span.end);
 
-            if (line > 0 || bounds_height == worldDimension.getHeight()) {
-                for (uint32_t j = start; j <= end; ++j)
+            if (line != 0 || bounds_height == worldDimension.getHeight()) {
+                for (uint32_t j = span.start; j <= span.end; ++j)
                     if (segments->id(line_above + j) > ID &&
                             map[line_above + j] >= CONT_BASE)
                     {
@@ -233,7 +235,7 @@ ContinentId MySegmentCreator::createSegment(const Platec::vec2ui& point,
             }
 
             if (line < bounds_height - 1 || bounds_height == worldDimension.getHeight()) {
-                for (uint32_t j = start; j <= end; ++j)
+                for (uint32_t j = span.start; j <= span.end; ++j)
                     if (segments->id(line_below + j) > ID &&
                             map[line_below + j] >= CONT_BASE)
                     {
@@ -259,8 +261,8 @@ ContinentId MySegmentCreator::createSegment(const Platec::vec2ui& point,
                     }
             }
 
-            spans_done[line].push_back(start);
-            spans_done[line].push_back(end);
+            spans_done[line].push_back(span.start);
+            spans_done[line].push_back(span.end);
             ++lines_processed;
         }
     } while (lines_processed > 0);
@@ -269,7 +271,7 @@ ContinentId MySegmentCreator::createSegment(const Platec::vec2ui& point,
         spans_todo[line].clear();
         spans_done[line].clear();
     }
-    segments->add(*pData);
+    segments->add(pData);
 
     return ID;
 }

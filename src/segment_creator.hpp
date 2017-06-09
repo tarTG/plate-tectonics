@@ -39,6 +39,21 @@ public:
                                     const Dimension& worldDimension) const = 0;
 };
 
+class Span
+{
+public:
+    uint32_t start;
+    uint32_t end;    
+    Span():start(0),end(0){}
+    Span(const uint32_t val):start(val){}
+    Span(const uint32_t start, const uint32_t end):start(start),end(end){}
+    
+    bool notValid()
+    {
+       return start > end;
+    }
+};
+
 class MySegmentCreator : public ISegmentCreator
 {
 public:
@@ -55,8 +70,7 @@ public:
                                     const Dimension& worldDimension) const;
 private:
     uint32_t calcDirection(const Platec::vec2ui& point, const uint32_t origin_index, const uint32_t ID) const;
-    void scanSpans(const uint32_t line, uint32_t& start, uint32_t& end,
-                   std::vector<uint32_t>* spans_todo, std::vector<uint32_t>* spans_done) const;
+    Span scanSpans( std::vector<uint32_t>& spans_todo, std::vector<uint32_t>& spans_done) const;
     
     const uint32_t getLeftIndex(const int32_t originIndex) const;
     const uint32_t getRightIndex(const int32_t originIndex) const;
