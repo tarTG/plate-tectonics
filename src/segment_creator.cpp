@@ -53,6 +53,7 @@ uint32_t MySegmentCreator::calcDirection(const Platec::vec2ui& point, const uint
 Span MySegmentCreator::scanSpans(std::vector<uint32_t>& spans_todo, std::vector<uint32_t>& spans_done) const
 {
     Span span;
+    Span tmpSpan;
     do // Find an unscanned span on this line.
     {
         span.end = spans_todo.back();
@@ -68,14 +69,15 @@ Span MySegmentCreator::scanSpans(std::vector<uint32_t>& spans_todo, std::vector<
             // Saved coordinates are AT the point
             // that was included last to the span.
             // That's why equalities matter.
+            tmpSpan = Span(spans_done[j],spans_done[j+1]);
 
-            if (span.start >= spans_done[j] &&
-                    span.start <= spans_done[j+1])
-                span.start = getRightIndex(spans_done[j+1]);
+            if (span.start >= tmpSpan.start &&
+                    span.start <= tmpSpan.end)
+                span.start = getRightIndex(tmpSpan.end);
 
-            if (span.end >= spans_done[j] &&
-                    span.end <= spans_done[j+1])
-                span.end = getLeftIndex(spans_done[j]);
+            if (span.end >= tmpSpan.start &&
+                    span.end <= tmpSpan.end)
+                span.end = getLeftIndex(tmpSpan.start);
         }
 
 
@@ -85,7 +87,7 @@ Span MySegmentCreator::scanSpans(std::vector<uint32_t>& spans_todo, std::vector<
             span.start = std::numeric_limits<uint32_t>::max();
             --span.end;
         }
-    } while (span.notValid() && spans_todo.size());
+    } while (span.notValid() && spans_todo.empty());
     return span;
 }
 
@@ -295,5 +297,5 @@ const uint32_t MySegmentCreator::getTopIndex(const int32_t originIndex) const {
 const bool MySegmentCreator::hasLowerID(const uint32_t index, const ContinentId ID) const {
     //check if the value of the index is higher than CONT_BASE and
     //if ID is lower than the given ID
-    return map[index] >= CONT_BASE && segments->id(index) < ID;
+    return map.get(index) >= CONT_BASE && segments->id(index) < ID;
 }
