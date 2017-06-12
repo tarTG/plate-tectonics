@@ -38,7 +38,7 @@ class ISegmentCreator
 {
 public:
     virtual ContinentId createSegment(const Platec::vec2ui& point, 
-                                    const Dimension& worldDimension) const = 0;
+                                    const Dimension& worldDimension) = 0;
 };
 
 class Span
@@ -69,7 +69,7 @@ public:
     /// @param	y	Offset on the local height map along Y axis.
     /// @return	ID of created segment on success, otherwise -1.
     ContinentId createSegment(const Platec::vec2ui& point, 
-                                    const Dimension& worldDimension) const;
+                                    const Dimension& worldDimension);
 private:
     uint32_t calcDirection(const Platec::vec2ui& point, const uint32_t origin_index, const uint32_t ID) const;
     Span scanSpans( std::vector<Span>& spans_todo, std::vector<Span>& spans_done) const;
@@ -80,7 +80,9 @@ private:
     const uint32_t getBottomIndex(const int32_t originIndex) const;
 
     const bool hasLowerID(const uint32_t index, const ContinentId ID) const;
-    const bool usablePoint(const uint32_t index, const ContinentId ID) const;      
+    const bool usablePoint(const uint32_t index, const ContinentId ID) const;
+    std::vector<Span> fillLineWithID(const Span& span, const uint32_t line,
+                                        const ContinentId ID ) ;
     Bounds& bounds;
     ISegments* segments;
     HeightMap& map;
