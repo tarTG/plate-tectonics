@@ -50,26 +50,20 @@ uint32_t MySegmentCreator::calcDirection(const Platec::vec2ui& point, const uint
     return ID;
 }
 
-Span MySegmentCreator::scanSpans(std::vector<uint32_t>& spans_todo, std::vector<uint32_t>& spans_done) const
+Span MySegmentCreator::scanSpans(std::vector<Span>& spans_todo, std::vector<Span>& spans_done) const
 {
     Span span;
-    Span tmpSpan;
     do // Find an unscanned span on this line.
     {
-        span.end = spans_todo.back();
-        spans_todo.pop_back();
-
-        span.start = spans_todo.back();
+        span = spans_todo.back();
         spans_todo.pop_back();
 
         // Reduce any done spans from this span.
-        for (uint32_t j = 0; j < spans_done.size();
-                j += 2)
+        for (auto tmpSpan : spans_done)
         {
             // Saved coordinates are AT the point
             // that was included last to the span.
             // That's why equalities matter.
-            tmpSpan = Span(spans_done[j],spans_done[j+1]);
 
             if (span.start >= tmpSpan.start &&
                     span.start <= tmpSpan.end)
@@ -117,22 +111,11 @@ ContinentId MySegmentCreator::createSegment(const Platec::vec2ui& point,
 
     uint32_t lines_processed;
     SegmentData pData = SegmentData(point,point, 0);
-    static std::vector<uint32_t>* spans_todo = NULL;
-    static std::vector<uint32_t>* spans_done = NULL;
-    static uint32_t spans_size = 0;
-    // MK: This code was originally allocating the 2D arrays per function call.
-    // This was eating up a tremendous amount of cpu.
-    // They are now static and they grow as needed, which turns out to be seldom.
-    if (spans_size < bounds_height) {
-        delete[] spans_todo;
-        delete[] spans_done;
-        spans_todo = new std::vector<uint32_t>[bounds_height];
-        spans_done = new std::vector<uint32_t>[bounds_height];
-        spans_size = bounds_height;
-    }
+    std::vector<std::vector<Span>> spans_todo= std::vector<std::vector<Span>> (bounds_height);
+    std::vector<std::vector<Span>> spans_done= std::vector<std::vector<Span>> (bounds_height);
+
     segments->setId(origin_index, ID);
-    spans_todo[point.y()].push_back(point.x());
-    spans_todo[point.y()].push_back(point.x());
+    spans_todo[point.y()].emplace_back(point.x());
 
     do
     {
@@ -157,7 +140,7 @@ ContinentId MySegmentCreator::createSegment(const Platec::vec2ui& point,
             const uint32_t line_below = row_below * bounds_width;
 
             // Extend the beginning of line.
-            while (span.start != 0 && segments->id(line_here+span.start-1) > ID &&
+            while (span.start != 0 &&  segments->id(line_here+span.start-1) > ID &&
                     map[line_here+span.start-1] >= CONT_BASE)
             {
                 --span.start;
@@ -183,8 +166,7 @@ ContinentId MySegmentCreator::createSegment(const Platec::vec2ui& point,
                     map[line_here+bounds_width-1] >= CONT_BASE)
             {
                 segments->setId(line_here + bounds_width - 1, ID);
-                spans_todo[line].push_back(bounds_width - 1);
-                spans_todo[line].push_back(bounds_width - 1);
+                spans_todo[line].emplace_back(bounds_width - 1);
 
                 // Count volume of pixel...
             }
@@ -195,8 +177,7 @@ ContinentId MySegmentCreator::createSegment(const Platec::vec2ui& point,
                     map[line_here+0] >= CONT_BASE)
             {
                 segments->setId(line_here + 0, ID);
-                spans_todo[line].push_back(0);
-                spans_todo[line].push_back(0);
+                spans_todo[line].emplace_back(0);
 
                 // Count volume of pixel...
             }
@@ -230,8 +211,7 @@ ContinentId MySegmentCreator::createSegment(const Platec::vec2ui& point,
 
                         uint32_t b = --j; // Last point is invalid.
 
-                        spans_todo[row_above].push_back(a);
-                        spans_todo[row_above].push_back(b);
+                        spans_todo[row_above].emplace_back(a,b);
                         ++j; // Skip the last scanned point.
                     }
             }
@@ -257,22 +237,16 @@ ContinentId MySegmentCreator::createSegment(const Platec::vec2ui& point,
 
                         uint32_t b = --j; // Last point is invalid.
 
-                        spans_todo[row_below].push_back(a);
-                        spans_todo[row_below].push_back(b);
+                        spans_todo[row_below].emplace_back(a,b);
                         ++j; // Skip the last scanned point.
                     }
             }
 
-            spans_done[line].push_back(span.start);
-            spans_done[line].push_back(span.end);
+            spans_done[line].push_back(span);
             ++lines_processed;
         }
     } while (lines_processed > 0);
 
-    for (uint32_t line = 0; line < bounds_height; line++) {
-        spans_todo[line].clear();
-        spans_done[line].clear();
-    }
     segments->add(pData);
 
     return ID;
@@ -298,4 +272,8 @@ const bool MySegmentCreator::hasLowerID(const uint32_t index, const ContinentId 
     //check if the value of the index is higher than CONT_BASE and
     //if ID is lower than the given ID
     return map.get(index) >= CONT_BASE && segments->id(index) < ID;
+}
+
+const bool MySegmentCreator::usablePoint(const uint32_t index, const ContinentId ID) const {
+    return segments->id(index) > ID &&   map[index] >= CONT_BASE;
 }

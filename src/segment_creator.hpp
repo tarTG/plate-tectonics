@@ -20,6 +20,8 @@
 #ifndef SEGMENT_CREATOR_HPP
 #define SEGMENT_CREATOR_HPP
 
+#define NOMINMAX 
+
 #include <vector>
 #include "utils.hpp"
 #include "dimension.h"
@@ -45,7 +47,7 @@ public:
     uint32_t start;
     uint32_t end;    
     Span():start(0),end(0){}
-    Span(const uint32_t val):start(val){}
+    Span(const uint32_t val):start(val),end(val){}
     Span(const uint32_t start, const uint32_t end):start(start),end(end){}
     
     bool notValid()
@@ -70,7 +72,7 @@ public:
                                     const Dimension& worldDimension) const;
 private:
     uint32_t calcDirection(const Platec::vec2ui& point, const uint32_t origin_index, const uint32_t ID) const;
-    Span scanSpans( std::vector<uint32_t>& spans_todo, std::vector<uint32_t>& spans_done) const;
+    Span scanSpans( std::vector<Span>& spans_todo, std::vector<Span>& spans_done) const;
     
     const uint32_t getLeftIndex(const int32_t originIndex) const;
     const uint32_t getRightIndex(const int32_t originIndex) const;
@@ -78,7 +80,7 @@ private:
     const uint32_t getBottomIndex(const int32_t originIndex) const;
 
     const bool hasLowerID(const uint32_t index, const ContinentId ID) const;
-    
+    const bool usablePoint(const uint32_t index, const ContinentId ID) const;      
     Bounds& bounds;
     ISegments* segments;
     HeightMap& map;
