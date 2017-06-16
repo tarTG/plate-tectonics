@@ -50,6 +50,11 @@ public:
     Span(const uint32_t val):start(val),end(val){}
     Span(const uint32_t start, const uint32_t end):start(start),end(end){}
     
+    bool inside(const uint32_t val) const
+    {
+        return val >= start &&  val <= end;
+    }
+    
     bool notValid()
     {
        return start > end;

@@ -59,27 +59,22 @@ Span MySegmentCreator::scanSpans(std::vector<Span>& spans_todo, std::vector<Span
         spans_todo.pop_back();
 
         // Reduce any done spans from this span.
-        for (auto tmpSpan : spans_done)
+        for (const auto& tmpSpan : spans_done)
         {
             // Saved coordinates are AT the point
             // that was included last to the span.
             // That's why equalities matter.
-
-            if (span.start >= tmpSpan.start &&
-                    span.start <= tmpSpan.end)
+            if (tmpSpan.inside(span.start ))
                 span.start = getRightIndex(tmpSpan.end);
 
-            if (span.end >= tmpSpan.start &&
-                    span.end <= tmpSpan.end)
+            if (tmpSpan.inside(span.end))
                 span.end = getLeftIndex(tmpSpan.start);
         }
 
-
-        // Required to fix the underflow of end - 1.
         if(span.end >= bounds.width())
         {
             span.start = std::numeric_limits<uint32_t>::max();
-            --span.end;
+            return span;
         }
     } while (span.notValid() && spans_todo.empty());
     return span;
@@ -109,7 +104,7 @@ ContinentId MySegmentCreator::createSegment(const Platec::vec2ui& point,
         return nbour_id;
     }
 
-    uint32_t lines_processed;
+    bool lines_processed = true;
     SegmentData pData = SegmentData(point,point, 0);
     std::vector<std::vector<Span>> spans_todo= std::vector<std::vector<Span>> (bounds_height);
     std::vector<std::vector<Span>> spans_done= std::vector<std::vector<Span>> (bounds_height);
@@ -117,9 +112,9 @@ ContinentId MySegmentCreator::createSegment(const Platec::vec2ui& point,
     segments->setId(origin_index, ID);
     spans_todo[point.y()].emplace_back(point.x());
 
-    do
+    while (lines_processed)
     {
-        lines_processed = 0;
+        lines_processed = false;
         for (uint32_t line = 0; line < bounds_height; ++line)
         {
             
@@ -132,10 +127,10 @@ ContinentId MySegmentCreator::createSegment(const Platec::vec2ui& point,
                 continue;
                         
             // Calculate line indices. Allow wrapping around map edges.
-            const uint32_t row_above = ((line - 1) & -(line > 0)) |
-                                       ((bounds_height - 1) & -(line == 0));
-            const uint32_t row_below = (line + 1) & -(line < bounds_height - 1);
+            const uint32_t row_above = (line == 0 ) ? bounds_height - 1 : line -1;
+            const uint32_t row_below = (line < bounds_height - 1) ? line +1 : 0;
             const uint32_t line_here = line * bounds_width;
+
             const uint32_t line_above = row_above * bounds_width;
             const uint32_t line_below = row_below * bounds_width;
 
@@ -162,8 +157,8 @@ ContinentId MySegmentCreator::createSegment(const Platec::vec2ui& point,
             if (bounds_width == worldDimension.getWidth() && span.start == 0 &&
                 usablePoint(line_here+getLeftIndex(bounds_width),ID))
             {
-                segments->setId(line_here + bounds_width - 1, ID);
-                spans_todo[line].emplace_back(bounds_width - 1);
+                segments->setId(line_here + getLeftIndex(bounds_width), ID);
+                spans_todo[line].emplace_back(getLeftIndex(bounds_width));
 
                 // Count volume of pixel...
             }
@@ -195,7 +190,7 @@ ContinentId MySegmentCreator::createSegment(const Platec::vec2ui& point,
 
             }
 
-            if (line < bounds_height - 1 || bounds_height == worldDimension.getHeight()) {
+            if (line < getLeftIndex(bounds_height) || bounds_height == worldDimension.getHeight()) {
                 
                 std::vector<Span> tmp = fillLineWithID(span,line_below, ID);
                 
@@ -203,10 +198,10 @@ ContinentId MySegmentCreator::createSegment(const Platec::vec2ui& point,
                             std::begin(tmp), std::end(tmp));
             }
 
-            spans_done[line].push_back(span);
-            ++lines_processed;
+            spans_done[line].emplace_back(span);
+            lines_processed = true;
         }
-    } while (lines_processed > 0);
+    } 
 
     segments->add(pData);
 
@@ -249,10 +244,10 @@ std::vector<Span> MySegmentCreator::fillLineWithID(const Span& span,const uint32
       if (usablePoint(line + j,ID))
       {
           uint32_t a = j;
-          segments->setId(line + a, ID);
+          segments->setId(line + j, ID);
 
           // Count volume of pixel...
-          while (++j < bounds.width() &&
+          while (++j < span.end &&
                   usablePoint(line + j,ID))
           {
               segments->setId(line + j, ID);
@@ -260,10 +255,7 @@ std::vector<Span> MySegmentCreator::fillLineWithID(const Span& span,const uint32
               // Count volume of pixel...
           }
 
-          uint32_t b = --j; // Last point is invalid.
-
-          ret.emplace_back(a,b);
-          ++j; // Skip the last scanned point.
+          ret.emplace_back(a,getLeftIndex(j));
       }  
     }
     return ret;
