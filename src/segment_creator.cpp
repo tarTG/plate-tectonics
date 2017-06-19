@@ -111,6 +111,8 @@ ContinentId MySegmentCreator::createSegment(const Platec::vec2ui& point,
 
     segments->setId(origin_index, ID);
     spans_todo[point.y()].emplace_back(point.x());
+    
+    uint32_t t = pData.getTop(),b = pData.getBottom(),r =pData.getRight(),l = pData.getLeft();
 
     while (lines_processed)
     {
@@ -176,10 +178,10 @@ ContinentId MySegmentCreator::createSegment(const Platec::vec2ui& point,
             pData.incArea(1 + span.end - span.start); // Update segment area counter.
 
             // Record any changes in extreme dimensions.
-            if (line < pData.getTop()) pData.setTop(line);
-            if (line > pData.getBottom()) pData.setBottom(line);
-            if (span.start < pData.getLeft()) pData.setLeft(span.start);
-            if (span.end > pData.getRight()) pData.setRight(span.end);
+            t = std::min(line,t);
+            b = std::max(line,b);
+            l = std::min(span.start,l);
+            r = std::max(span.end,r);
 
             if (line != 0 || bounds_height == worldDimension.getHeight()) {
                 
@@ -202,7 +204,11 @@ ContinentId MySegmentCreator::createSegment(const Platec::vec2ui& point,
             lines_processed = true;
         }
     } 
-
+    
+    pData.setTop(t);
+    pData.setBottom(b);
+    pData.setLeft(l);
+    pData.setRight(r);
     segments->add(pData);
 
     return ID;
