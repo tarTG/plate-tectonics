@@ -18,6 +18,8 @@
  *****************************************************************************/
 
 #define _USE_MATH_DEFINES // Winblow$.
+
+
 #include <cfloat>    // FT_EPSILON
 #ifdef __MINGW32__ // this is to avoid a problem with the hypot function which is messed up by Python...
 #undef __STRICT_ANSI__
@@ -27,7 +29,6 @@
 #include <vector>
 #include <stdexcept> // std::invalid_argument
 #include <assert.h>
-
 #include "plate.hpp"
 #include "heightmap.hpp"
 #include "utils.hpp"
@@ -35,48 +36,43 @@
 
 using namespace std;
 
-plate::plate(long seed, float* m, uint32_t w, uint32_t h, uint32_t _x, uint32_t _y,
-             uint32_t plate_age, Dimension worldDimension) :
-    _randsource(seed),
-    _mass(MassBuilder(HeightMap(std::vector<float>(m, m+(w*h)), Dimension(w, h))).build()),
-    map(std::vector<float>(m, m+(w*h)), w, h),
-    age_map(w, h),
-    _worldDimension(worldDimension),
-    _movement(_randsource) {
-    const uint32_t plate_area = w * h;
+plate::plate(const long seed,const HeightMap&  m, 
+            const Dimension& plateDimension,
+            const Platec::vec2f& topLeftCorner,
+         const uint32_t plate_age,const Dimension& worldDimension) :
+    randsource(seed),
+    mass(MassBuilder(m).build()),
+    map(m),
+    age_map(std::vector<uint32_t>(plateDimension.getArea(),0),plateDimension),
+    worldDimension(worldDimension),
+    movement(randsource) {
+    const uint32_t plate_area = plateDimension.getArea();
 
-    _bounds = new Bounds(worldDimension,
-                    Platec::vec2f(_x, _y), Dimension(w, h));
+    bounds = std::make_shared<Bounds>(worldDimension,
+                    topLeftCorner, plateDimension);
 
-    uint32_t k;
-    for (uint32_t y = k = 0; y < _bounds->height(); ++y) {
-        for (uint32_t x = 0; x < _bounds->width(); ++x, ++k) {
-            // Set the age of ALL points in this plate to same
-            // value. The right thing to do would be to simulate
-            // the generation of new oceanic crust as if the plate
-            // had been moving to its current direction until all
-            // plate's (oceanic) crust receive an age.
-            age_map.set(Platec::vec2ui(x, y),
-                                plate_age & -(m[k] > 0));
-        }
-    }
-    Segments* segments = new Segments(plate_area);
-    _segments = segments;
-    _mySegmentCreator = new MySegmentCreator(*_bounds, _segments, map);
-    segments->setSegmentCreator(_mySegmentCreator);
-    segments->setBounds(_bounds);
+    
+    auto mapItr = map.getData().begin();
+    
+    std::replace_if(age_map.getData().begin(),age_map.getData().end(),
+                    [&](const auto& val)
+                    {
+                        auto ret = *mapItr > 0;
+                        ++mapItr;
+                        return ret;
+                    }, plate_age);
+
+
+    segments = std::make_shared<Segments>(plate_area);
+    mySegmentCreator = std::make_shared<MySegmentCreator>(*bounds, segments, map);
+    segments->setSegmentCreator(mySegmentCreator);
+    segments->setBounds(bounds);
 }
 
-plate::~plate()
-{
-    delete _mySegmentCreator;
-    delete _segments;
-    delete _bounds;
-}
 
-uint32_t plate::addCollision(uint32_t wx, uint32_t wy)
+uint32_t plate::addCollision(const Platec::vec2ui& point)
 {
-    ISegmentData& seg = getContinentAt(wx, wy);
+    auto& seg = getContinentAt(point);
     seg.incCollCount();
     return seg.getArea();
 }
@@ -86,10 +82,10 @@ void plate::addCrustByCollision(uint32_t x, uint32_t y, float z, uint32_t time, 
     // Add crust. Extend plate if necessary.
     setCrust(x, y, getCrust(x, y) + z, time);
 
-    auto index = _bounds->getValidMapIndex(Platec::vec2ui( x, y));
-    _segments->setId(index.first, activeContinent);
+    auto index = bounds->getValidMapIndex(Platec::vec2ui( x, y));
+    segments->setId(index.first, activeContinent);
 
-    ISegmentData& data = (*_segments)[activeContinent];
+    ISegmentData& data = (*segments)[activeContinent];
     data.incArea();
     data.enlarge_to_contain(index.second);
 }
@@ -111,22 +107,22 @@ void plate::addCrustBySubduction(uint32_t x, uint32_t y, float z, uint32_t t,
     //       Drawbacks:
     //           Additional logic required
     //           Might place crust on other continent on same plate!
-    auto index = _bounds->getValidMapIndex(Platec::vec2ui(x,y));
+    auto index = bounds->getValidMapIndex(Platec::vec2ui(x,y));
 
     // Take vector difference only between plates that move more or less
     // to same direction. This makes subduction direction behave better.
     //
     // Use of "this" pointer is not necessary, but it make code clearer.
     // Cursed be those who use "m_" prefix in member names! >(
-    float dot = _movement.dot(Platec::vec2f(dx,dy));
-    dx -= _movement.velocityOn(dot > 0).x();
-    dy -= _movement.velocityOn(dot > 0).y();
+    float dot = movement.dot(Platec::vec2f(dx,dy));
+    dx -= movement.velocityOn(dot > 0).x();
+    dy -= movement.velocityOn(dot > 0).y();
 
-    float offset = (float)_randsource.next_double();
-    float offset_sign = 2 * (int)(_randsource.next() % 2) - 1;
+    float offset = (float)randsource.next_double();
+    float offset_sign = 2 * (int)(randsource.next() % 2) - 1;
     offset *= offset * offset * offset_sign;
-    float offset2 = (float)_randsource.next_double();
-    float offset_sign2 = 2 * (int)(_randsource.next() % 2) - 1;
+    float offset2 = (float)randsource.next_double();
+    float offset_sign2 = 2 * (int)(randsource.next() % 2) - 1;
     offset2 *= offset2 * offset2 * offset_sign2;
     dx = 10 * dx + 3 * offset;
     dy = 10 * dy + 3 * offset2;
@@ -135,17 +131,17 @@ void plate::addCrustBySubduction(uint32_t x, uint32_t y, float z, uint32_t t,
     float fy = index.second.y() + dy;
 
     auto p = Platec::vec2ui(fx, fy);
-    if (_bounds->isInLimits(p))
+    if (bounds->isInLimits(p))
     {
         
-        uint32_t tmpindex = _bounds->index(p);
+        uint32_t tmpindex = bounds->index(p);
         if (map[tmpindex] > 0)
         {
             t = (map[tmpindex] * age_map[tmpindex] + z * t) / (map[tmpindex] + z);
             age_map[tmpindex] = t * (z > 0);
 
             map[tmpindex] += z;
-            _mass.incMass(z);
+            mass.incMass(z);
         }
     }
 }
@@ -153,9 +149,9 @@ void plate::addCrustBySubduction(uint32_t x, uint32_t y, float z, uint32_t t,
 float plate::aggregateCrust(plate* p, uint32_t wx, uint32_t wy)
 {
 
-    const auto index = _bounds->getValidMapIndex(Platec::vec2ui(wx,wy));
+    const auto index = bounds->getValidMapIndex(Platec::vec2ui(wx,wy));
 
-    const ContinentId seg_id = _segments->id(index.first);
+    const ContinentId seg_id = segments->id(index.first);
 
     // This check forces the caller to do things in proper order!
     //
@@ -173,58 +169,58 @@ float plate::aggregateCrust(plate* p, uint32_t wx, uint32_t wy)
     // causes continent to aggregate then all successive collisions and
     // attempts of aggregation would necessarily change nothing at all,
     // because the continent was removed from this plate earlier!
-    if ((*_segments)[seg_id].isEmpty()) {
+    if ((*segments)[seg_id].isEmpty()) {
         return 0;   // Do not process empty continents.
     }
 
     ContinentId activeContinent = p->selectCollisionSegment(wx, wy);
 
     // Wrap coordinates around world edges to safeguard subtractions.
-    wx += _worldDimension.getWidth();
-    wy += _worldDimension.getHeight();
+    wx += worldDimension.getWidth();
+    wy += worldDimension.getHeight();
 
     // Aggregating segment [%u, %u]x[%u, %u] vs. [%u, %u]@[%u, %u]\n",
     //      seg_data[seg_id].x0, seg_data[seg_id].y0,
     //      seg_data[seg_id].x1, seg_data[seg_id].y1,
     //      _dimension.getWidth(), _dimension.getHeight(), lx, ly);
 
-    float old_mass = _mass.getMass();
+    float old_mass = mass.getMass();
 
     // Add all of the collided continent's crust to destination plate.
-    for (uint32_t y = (*_segments)[seg_id].getTop(); y <= (*_segments)[seg_id].getBottom(); ++y)
+    for (uint32_t y = (*segments)[seg_id].getTop(); y <= (*segments)[seg_id].getBottom(); ++y)
     {
-        for (uint32_t x = (*_segments)[seg_id].getLeft(); x <= (*_segments)[seg_id].getRight(); ++x)
+        for (uint32_t x = (*segments)[seg_id].getLeft(); x <= (*segments)[seg_id].getRight(); ++x)
         {
-            const uint32_t i = y * _bounds->width() + x;
-            if ((_segments->id(i) == seg_id) && (map[i] > 0))
+            const uint32_t i = y * bounds->width() + x;
+            if ((segments->id(i) == seg_id) && (map[i] > 0))
             {
                 p->addCrustByCollision(wx + x - index.second.x(), wy + y - index.second.y(),
                                        map[i], age_map[i], activeContinent);
 
-                _mass.incMass(-1.0f * map[i]);
+                mass.incMass(-1.0f * map[i]);
                 map[i] = 0.0f;
             }
         }
     }
 
-    (*_segments)[seg_id].markNonExistent(); // Mark segment as non-existent
-    return old_mass - _mass.getMass();
+    (*segments)[seg_id].markNonExistent(); // Mark segment as non-existent
+    return old_mass - mass.getMass();
 }
 
 void plate::applyFriction(float deformed_mass)
 {
     // Remove the energy that deformation consumed from plate's kinetic
     // energy: F - dF = ma - dF => a = dF/m.
-    if (!_mass.isNull())
+    if (!mass.isNull())
     {
-        _movement.applyFriction(deformed_mass, _mass.getMass());
+        movement.applyFriction(deformed_mass, mass.getMass());
     }
 }
 
 void plate::collide(plate& p, uint32_t wx, uint32_t wy, float coll_mass)
 {
-    if (!_mass.isNull() && coll_mass > 0) {
-        _movement.collide(_mass, p, coll_mass);
+    if (!mass.isNull() && coll_mass > 0) {
+        movement.collide(mass, p, coll_mass);
     }
 }
 
@@ -234,13 +230,13 @@ void plate::calculateCrust(uint32_t x, uint32_t y, uint32_t index,
 {
     ::calculateCrust(x, y, index, w_crust, e_crust, n_crust, s_crust,
                      w, e, n, s,
-                     _worldDimension, map, _bounds->width(), _bounds->height());
+                     worldDimension, map, bounds->width(), bounds->height());
 }
 
 void plate::findRiverSources(float lower_bound, vector<uint32_t>* sources)
 {
-    const uint32_t bounds_height = _bounds->height();
-    const uint32_t bounds_width = _bounds->width();
+    const uint32_t bounds_height = bounds->height();
+    const uint32_t bounds_width = bounds->width();
 
     // Find all tops.
     for (uint32_t y = 0; y < bounds_height; ++y) {
@@ -270,7 +266,7 @@ void plate::findRiverSources(float lower_bound, vector<uint32_t>* sources)
 
 void plate::flowRivers(float lower_bound, vector<uint32_t>* sources, HeightMap& tmp)
 {
-    const uint32_t bounds_area = _bounds->area();
+    const uint32_t bounds_area = bounds->area();
     vector<uint32_t> sinks_data;
     vector<uint32_t>* sinks = &sinks_data;
 
@@ -284,8 +280,8 @@ void plate::flowRivers(float lower_bound, vector<uint32_t>* sources, HeightMap& 
     while (!sources->empty()) {
         while (!sources->empty()) {
             const uint32_t index = sources->back();
-            const uint32_t y = index / _bounds->width();
-            const uint32_t x = index - y * _bounds->width();
+            const uint32_t y = index / bounds->width();
+            const uint32_t x = index - y * bounds->width();
 
             sources->pop_back();
 
@@ -319,16 +315,16 @@ void plate::flowRivers(float lower_bound, vector<uint32_t>* sources, HeightMap& 
 
             if (n_crust < lowest_crust) {
                 lowest_crust = n_crust;
-                dest = index - _bounds->width();
+                dest = index - bounds->width();
             }
 
             if (s_crust < lowest_crust) {
                 lowest_crust = s_crust;
-                dest = index + _bounds->width();
+                dest = index + bounds->width();
             }
 
             // if it's not handled yet, add it as new sink.
-            if (dest < _bounds->area() && !s_flowDone[dest]) {
+            if (dest < bounds->area() && !s_flowDone[dest]) {
                 sinks->push_back(dest);
                 s_flowDone[dest] = true;
             }
@@ -355,8 +351,8 @@ void plate::erode(float lower_bound)
     flowRivers(lower_bound, sources, tmpHm);
 
     // Add random noise (10 %) to heightmap.
-    for (uint32_t i = 0; i < _bounds->area(); ++i) {
-        float alpha = 0.2 * (float)_randsource.next_double();
+    for (uint32_t i = 0; i < bounds->area(); ++i) {
+        float alpha = 0.2 * (float)randsource.next_double();
         tmpHm[i] += 0.1 * tmpHm[i] - alpha * tmpHm[i];
     }
 
@@ -364,11 +360,11 @@ void plate::erode(float lower_bound)
     tmpHm.set_all(0.0f);
     MassBuilder massBuilder;
 
-    for (uint32_t y = 0; y < _bounds->height(); ++y)
+    for (uint32_t y = 0; y < bounds->height(); ++y)
     {
-        for (uint32_t x = 0; x < _bounds->width(); ++x)
+        for (uint32_t x = 0; x < bounds->width(); ++x)
         {
-            const uint32_t index = y * _bounds->width() + x;
+            const uint32_t index = y * bounds->width() + x;
             massBuilder.addPoint(Platec::Vector2D<uint32_t>(x, y), map[index]);
             tmpHm[index] += map[index]; // Careful not to overwrite earlier amounts.
 
@@ -464,12 +460,12 @@ void plate::erode(float lower_bound)
         }
     }
     map = tmpHm;
-    _mass = massBuilder.build();
+    mass = massBuilder.build();
 }
 
 void plate::getCollisionInfo(uint32_t wx, uint32_t wy, uint32_t* count, float* ratio) const
 {
-    const ISegmentData& seg = getContinentAt(wx, wy);
+    const ISegmentData& seg = getContinentAt(Platec::vec2ui(wx, wy));
 
     *count = seg.collCount();
     *ratio = (float)seg.collCount() /
@@ -478,20 +474,20 @@ void plate::getCollisionInfo(uint32_t wx, uint32_t wy, uint32_t* count, float* r
 
 uint32_t plate::getContinentArea(uint32_t wx, uint32_t wy) const
 {
-    const auto index = _bounds->getValidMapIndex(Platec::vec2ui(wx, wy));
-    ASSERT(_segments->id(index.first) < _segments->size(), "Segment index invalid");
-    return (*_segments)[_segments->id(index.first)].getArea();
+    const auto index = bounds->getValidMapIndex(Platec::vec2ui(wx, wy));
+    ASSERT(segments->id(index.first) < segments->size(), "Segment index invalid");
+    return (*segments)[segments->id(index.first)].getArea();
 }
 
 float plate::getCrust(uint32_t x, uint32_t y) const
 {
-    const auto index = _bounds->getMapIndex(Platec::vec2ui(x, y));
+    const auto index = bounds->getMapIndex(Platec::vec2ui(x, y));
     return index.first != BAD_INDEX ? map[index.first] : 0;
 }
 
 uint32_t plate::getCrustTimestamp(uint32_t x, uint32_t y) const
 {
-    const auto index = _bounds->getMapIndex(Platec::vec2ui(x, y));
+    const auto index = bounds->getMapIndex(Platec::vec2ui(x, y));
     return index.first != BAD_INDEX ? age_map[index.first] : 0;
 }
 
@@ -507,18 +503,18 @@ void plate::getMap(const float** c, const uint32_t** t) const
 
 void plate::move(const Dimension& worldDimension)
 {
-    _movement.move(worldDimension);
+    movement.move(worldDimension);
 
     // Location modulations into range [0..world width/height[ are a have to!
     // If left undone SOMETHING WILL BREAK DOWN SOMEWHERE in the code!
 
-    _bounds->shift(_movement.velocityVector());
+    bounds->shift(movement.velocityVector());
 }
 
 void plate::resetSegments()
 {
-    ASSERT(_bounds->area() == _segments->getArea(), "Segments doesn't have the expected area");
-    _segments->reset();
+    ASSERT(bounds->area() == segments->getArea(), "Segments doesn't have the expected area");
+    segments->reset();
 }
 
 void plate::setCrust(uint32_t x, uint32_t y, float z, uint32_t t)
@@ -528,35 +524,35 @@ void plate::setCrust(uint32_t x, uint32_t y, float z, uint32_t t)
     }
 
 
-    auto index = _bounds->getMapIndex(Platec::vec2ui(x, y));
+    auto index = bounds->getMapIndex(Platec::vec2ui(x, y));
 
     if (index.first == BAD_INDEX)
     {
         // Extending plate for nothing!
         ASSERT(z > 0, "Height value must be non-zero");
 
-        const uint32_t ilft = _bounds->left();
-        const uint32_t itop = _bounds->top();
-        const uint32_t irgt = _bounds->rightAsUintNonInclusive();
-        const uint32_t ibtm = _bounds->bottomAsUintNonInclusive();
+        const uint32_t ilft = bounds->left();
+        const uint32_t itop = bounds->top();
+        const uint32_t irgt = bounds->rightAsUintNonInclusive();
+        const uint32_t ibtm = bounds->bottomAsUintNonInclusive();
 
-        auto point = _worldDimension.normalize(Platec::vec2ui(x,y));
+        auto point = worldDimension.normalize(Platec::vec2ui(x,y));
         
         x = point.x();
         y = point.y();
         
         // Calculate distance of new point from plate edges.
         const uint32_t _lft = ilft - x;
-        const uint32_t _rgt = (_worldDimension.getWidth() & -(x < ilft)) + x - irgt;
+        const uint32_t _rgt = (worldDimension.getWidth() & -(x < ilft)) + x - irgt;
         const uint32_t _top = itop - y;
-        const uint32_t _btm = (_worldDimension.getHeight() & -(y < itop)) + y - ibtm;
+        const uint32_t _btm = (worldDimension.getHeight() & -(y < itop)) + y - ibtm;
 
         // Set larger of horizontal/vertical distance to zero.
         // A valid distance is NEVER larger than world's side's length!
-        uint32_t d_lft = _lft & -(_lft <  _rgt) & -(_lft < _worldDimension.getWidth());
-        uint32_t d_rgt = _rgt & -(_rgt <= _lft) & -(_rgt < _worldDimension.getWidth());
-        uint32_t d_top = _top & -(_top <  _btm) & -(_top < _worldDimension.getHeight());
-        uint32_t d_btm = _btm & -(_btm <= _top) & -(_btm < _worldDimension.getHeight());
+        uint32_t d_lft = _lft & -(_lft <  _rgt) & -(_lft < worldDimension.getWidth());
+        uint32_t d_rgt = _rgt & -(_rgt <= _lft) & -(_rgt < worldDimension.getWidth());
+        uint32_t d_top = _top & -(_top <  _btm) & -(_top < worldDimension.getHeight());
+        uint32_t d_btm = _btm & -(_btm <= _top) & -(_btm < worldDimension.getHeight());
 
         // Scale all changes to multiple of 8.
         d_lft = ((d_lft > 0) + (d_lft >> 3)) << 3;
@@ -565,58 +561,58 @@ void plate::setCrust(uint32_t x, uint32_t y, float z, uint32_t t)
         d_btm = ((d_btm > 0) + (d_btm >> 3)) << 3;
 
         // Make sure plate doesn't grow bigger than the system it's in!
-        if (_bounds->width() + d_lft + d_rgt > _worldDimension.getWidth())
+        if (bounds->width() + d_lft + d_rgt > worldDimension.getWidth())
         {
             d_lft = 0;
-            d_rgt = _worldDimension.getWidth() - _bounds->width();
+            d_rgt = worldDimension.getWidth() - bounds->width();
         }
 
-        if (_bounds->height() + d_top + d_btm > _worldDimension.getHeight())
+        if (bounds->height() + d_top + d_btm > worldDimension.getHeight())
         {
             d_top = 0;
-            d_btm = _worldDimension.getHeight() - _bounds->height();
+            d_btm = worldDimension.getHeight() - bounds->height();
         }
 
         // Index out of bounds, but nowhere to grow!
         ASSERT(d_lft + d_rgt + d_top + d_btm != 0, "Invalid plate growth deltas");
 
-        const uint32_t old_width  = _bounds->width();
-        const uint32_t old_height = _bounds->height();
+        const uint32_t old_width  = bounds->width();
+        const uint32_t old_height = bounds->height();
 
-        _bounds->shift(Platec::vec2f(-1.0*d_lft, -1.0*d_top));
-        _bounds->grow(Platec::vec2ui(d_lft + d_rgt, d_top + d_btm));
+        bounds->shift(Platec::vec2f(-1.0*d_lft, -1.0*d_top));
+        bounds->grow(Platec::vec2ui(d_lft + d_rgt, d_top + d_btm));
 
-        HeightMap tmph = HeightMap(_bounds->width(), _bounds->height());
-        AgeMap    tmpa = AgeMap(_bounds->width(), _bounds->height());
-        uint32_t* tmps = new uint32_t[_bounds->area()];
+        HeightMap tmph = HeightMap(bounds->width(), bounds->height());
+        AgeMap    tmpa = AgeMap(bounds->width(), bounds->height());
+        uint32_t* tmps = new uint32_t[bounds->area()];
         tmph.set_all(0);
         tmpa.set_all(0);
-        memset(tmps, 255, _bounds->area()*sizeof(uint32_t));
+        memset(tmps, 255, bounds->area()*sizeof(uint32_t));
 
         // copy old plate into new.
         for (uint32_t j = 0; j < old_height; ++j)
         {
-            const uint32_t dest_i = (d_top + j) * _bounds->width() + d_lft;
+            const uint32_t dest_i = (d_top + j) * bounds->width() + d_lft;
             const uint32_t src_i = j * old_width;
             memcpy(&tmph[dest_i], &map[src_i], old_width *
                    sizeof(float));
             memcpy(&tmpa[dest_i], &age_map[src_i], old_width *
                    sizeof(uint32_t));
-            memcpy(&tmps[dest_i], &_segments->id(src_i), old_width *
+            memcpy(&tmps[dest_i], &segments->id(src_i), old_width *
                    sizeof(uint32_t));
         }
 
         map     = tmph;
         age_map = tmpa;
-        _segments->reassign(_bounds->area(),std::vector<uint32_t>(tmps, tmps +_bounds->area()));
+        segments->reassign(bounds->area(),std::vector<uint32_t>(tmps, tmps +bounds->area()));
 
         // Shift all segment data to match new coordinates.
-        _segments->shift(Platec::vec2ui(d_lft, d_top));
+        segments->shift(Platec::vec2ui(d_lft, d_top));
 
 
-        index = _bounds->getValidMapIndex(Platec::vec2ui(x, y));
+        index = bounds->getValidMapIndex(Platec::vec2ui(x, y));
 
-        assert(index.first < _bounds->area());
+        assert(index.first < bounds->area());
     }
 
     // Update crust's age.
@@ -628,15 +624,15 @@ void plate::setCrust(uint32_t x, uint32_t y, float z, uint32_t t)
                                        (map[index.first] + z)) & old_crust);
     age_map[index.first] = (t & new_crust) | (age_map[index.first] & ~new_crust);
 
-    _mass.incMass(-1.0f * map[index.first]);
-    _mass.incMass(z);      // Update mass counter.
+    mass.incMass(-1.0f * map[index.first]);
+    mass.incMass(z);      // Update mass counter.
     map[index.first] = z;     // Set new crust height to desired location.
 }
 
 ContinentId plate::selectCollisionSegment(uint32_t coll_x, uint32_t coll_y)
 {
-    auto index = _bounds->getValidMapIndex(Platec::vec2ui(coll_x,coll_y));
-    ContinentId activeContinent = _segments->id(index.first);
+    auto index = bounds->getValidMapIndex(Platec::vec2ui(coll_x,coll_y));
+    ContinentId activeContinent = segments->id(index.first);
     return activeContinent;
 }
 
@@ -644,17 +640,17 @@ ContinentId plate::selectCollisionSegment(uint32_t coll_x, uint32_t coll_y)
 /// Private methods ///////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-uint32_t plate::createSegment(uint32_t x, uint32_t y) throw()
+uint32_t plate::createSegment(const Platec::vec2ui& point)
 {
-    return _mySegmentCreator->createSegment(Platec::vec2ui(x, y),_worldDimension);
+    return mySegmentCreator->createSegment(point,worldDimension);
 }
 
-ISegmentData& plate::getContinentAt(int x, int y)
+ISegmentData& plate::getContinentAt(const Platec::vec2ui& point)
 {
-    return (*_segments)[_segments->getContinentAt(Platec::vec2ui(x, y),_worldDimension)];
+    return (*segments)[segments->getContinentAt(point,worldDimension)];
 }
 
-const ISegmentData& plate::getContinentAt(int x, int y) const
+const ISegmentData& plate::getContinentAt(const Platec::vec2ui& point) const
 {
-    return (*_segments)[_segments->getContinentAt(Platec::vec2ui(x, y),_worldDimension)];
+    return (*segments)[segments->getContinentAt(point,worldDimension)];
 }

@@ -24,7 +24,7 @@
 #include "segments.hpp"
 #include "bounds.hpp"
 
-MySegmentCreator::MySegmentCreator(Bounds& bounds, ISegments* segments, HeightMap& map_)
+MySegmentCreator::MySegmentCreator(Bounds& bounds, std::shared_ptr<ISegments> segments, HeightMap& map_)
 : bounds(bounds), segments(segments), map(map_) {
 
 }

@@ -97,7 +97,7 @@ ContinentId& Segments::id(const uint32_t index) {
     return segment.at(index);
 }
 
-void Segments::setBounds(Bounds* bounds) {
+void Segments::setBounds(const std::shared_ptr<Bounds>& bounds) {
     this->bounds = bounds;
 }
 
@@ -105,7 +105,7 @@ void Segments::setId(const uint32_t index, const ContinentId id) {
     segment.at(index) = id;
 }
 
-void Segments::setSegmentCreator(ISegmentCreator* segmentCreator) {
+void Segments::setSegmentCreator(const std::shared_ptr<ISegmentCreator>& segmentCreator) {
     this->segmentCreator = segmentCreator;
 }
 

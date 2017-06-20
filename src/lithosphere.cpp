@@ -309,7 +309,9 @@ void lithosphere::createPlates()
             }
             // Create plate.
             // MK: The pmap array becomes owned by map, do not delete it
-            plates[i] = new plate(_randsource.next(), pmap, width, height, x0, y0, i, _worldDimension);
+            HeightMap m = HeightMap(std::vector<float>(pmap,pmap+(width* height)),width, height);
+            Dimension plaDim = Dimension(width, height);
+            plates[i] = new plate(_randsource.next(), m, plaDim, Platec::vec2f(x0, y0), i, _worldDimension);
         }
 
         iter_count = num_plates + MAX_BUOYANCY_AGE;
@@ -353,8 +355,8 @@ void lithosphere::resolveJuxtapositions(const uint32_t& i, const uint32_t& j, co
 
     // Record collisions to both plates. This also creates
     // continent segment at the collided location to plates.
-    uint32_t this_area = plates[i]->addCollision(x_mod, y_mod);
-    uint32_t prev_area = plates[imap[k]]->addCollision(x_mod, y_mod);
+    uint32_t this_area = plates[i]->addCollision(Platec::vec2ui(x_mod, y_mod));
+    uint32_t prev_area = plates[imap[k]]->addCollision(Platec::vec2ui(x_mod, y_mod));
 
     if (this_area < prev_area)
     {

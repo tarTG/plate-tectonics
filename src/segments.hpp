@@ -59,13 +59,13 @@ private:
     std::vector<SegmentData> seg_data; ///< Details of each crust segment.
     std::vector<ContinentId> segment;              ///< Segment ID of each piece of continental crust.
     uint32_t area; /// Should be the same as the bounds area of the plate
-    ISegmentCreator* segmentCreator;
-    Bounds* bounds;    
+    std::shared_ptr<ISegmentCreator> segmentCreator;
+    std::shared_ptr<Bounds> bounds;    
     
 public:
     Segments(uint32_t plate_area);
-    void setSegmentCreator(ISegmentCreator* segmentCreator);
-    void setBounds(Bounds* bounds);
+    void setSegmentCreator(const std::shared_ptr<ISegmentCreator>& segmentCreator);
+    void setBounds(const std::shared_ptr<Bounds>&  bounds);
     const uint32_t getArea() const override;
     void reset() override;
     void reassign(const uint32_t newarea,const std::vector<uint32_t>& tmps) override;

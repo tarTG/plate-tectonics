@@ -19,8 +19,10 @@
 
 #ifndef PLATE_HPP
 #define PLATE_HPP
+#include <algorithm>
 
 #include <vector>
+#include <memory>
 #include <cmath>     // sin, cos
 #include <cstring>
 #include "simplerandom.hpp"
@@ -49,17 +51,18 @@ public:
     /// @param  _x             X of height map's left-top corner on world map.
     /// @param  _y             Y of height map's left-top corner on world map.
     /// @param  worldDimension Dimension of world map's either side in pixels.
-    plate(long seed, float* m, uint32_t w, uint32_t h, uint32_t _x, uint32_t _y,
-          uint32_t plate_age, Dimension worldDimension);
+    plate(const long seed,const HeightMap& m, 
+            const Dimension& plateDimension,
+            const Platec::vec2f& topLeftCorner,
+         const uint32_t plate_age,const Dimension& worldDimension);
 
-    ~plate();
 
     /// Increment collision counter of the continent at given location.
     ///
     /// @param  wx  X coordinate of collision point on world map.
     /// @param  wy  Y coordinate of collision point on world map.
     /// @return Surface area of the collided continent (HACK!)
-    uint32_t addCollision(uint32_t wx, uint32_t wy);
+    uint32_t addCollision(const Platec::vec2ui& point);
 
     /// Add crust to plate as result of continental collision.
     ///
@@ -204,63 +207,50 @@ public:
     void setCrust(uint32_t x, uint32_t y, float z, uint32_t t);
 
     float getMass() const throw() {
-        return _mass.getMass();
+        return mass.getMass();
     }
     float getMomentum() const throw() {
-        return _movement.momentum(_mass);
+        return movement.momentum(mass);
     }
     uint32_t getHeight() const throw() {
-        return _bounds->height();
+        return bounds->height();
     }
     uint32_t  getLeftAsUint() const throw() {
-        return _bounds->left();
+        return bounds->left();
     }
     uint32_t  getTopAsUint() const throw() {
-        return _bounds->top();
+        return bounds->top();
     }
     float getVelocity() const throw() {
-        return _movement.getVelocity();
+        return movement.getVelocity();
     }
 
     Platec::Vector2D<float_t> velocityUnitVector() const {
-        return _movement.velocityUnitVector();
+        return movement.velocityUnitVector();
     }
 
     /// @Deprecated, use velocityUnitVector instead
     float getVelX() const throw() {
-        return _movement.velocityVector().x();
+        return movement.velocityVector().x();
     }
     /// @Deprecated, use velocityUnitVector instead
     float getVelY() const throw() {
-        return _movement.velocityVector().y();
+        return movement.velocityVector().y();
     }
 
     uint32_t getWidth() const throw() {
-        return _bounds->width();
+        return bounds->width();
     }
     bool   isEmpty() const throw() {
-        return _mass.isNull();
+        return mass.isNull();
     }
-    float getCx() const {
-        return _mass.massCenter().x();
-    }
-    float getCy() const {
-        return _mass.massCenter().y();
-    }
+
     const Platec::vec2f massCenter() const {
-        return _mass.massCenter();
+        return mass.massCenter();
     }
 
     void decImpulse(const Platec::vec2f& delta) {
-        _movement.decImpulse(delta);
-    }
-
-    // @Deprecated, use decImpulse instead
-    void decDx(float delta) {
-        _movement.decImpulse(Platec::vec2f(delta, 0.0));
-    }
-    void decDy(float delta) {
-        _movement.decImpulse(Platec::vec2f(0.0, delta));
+        movement.decImpulse(delta);
     }
 
     // visible for testing
@@ -269,36 +259,27 @@ public:
                         uint32_t& w, uint32_t& e, uint32_t& n, uint32_t& s);
 
     // Visible for testing
-    void injectSegments(ISegments* segments)
+    void injectSegments( std::shared_ptr<ISegments> segments)
     {
-        delete _segments;
-        _segments = segments;
+        this->segments = std::static_pointer_cast<Segments>(segments);
     }
-
-    // Visible for testing
-    void injectBounds(Bounds* bounds)
-    {
-        delete _bounds;
-        _bounds = bounds;
-    }
-
 private:
 
-    ISegmentData& getContinentAt(int x, int y);
-    const ISegmentData& getContinentAt(int x, int y) const;
+    ISegmentData& getContinentAt(const Platec::vec2ui& point);
+    const ISegmentData& getContinentAt(const Platec::vec2ui& point) const;
     void findRiverSources(float lower_bound, std::vector<uint32_t>* sources);
     void flowRivers(float lower_bound, std::vector<uint32_t>* sources, HeightMap& tmp);
-    uint32_t createSegment(uint32_t x, uint32_t y) throw();
+    uint32_t createSegment(const Platec::vec2ui& point);
 
-    const Dimension _worldDimension;
-    SimpleRandom _randsource;
+    const Dimension worldDimension;
+    SimpleRandom randsource;
     HeightMap map;        ///< Bitmap of plate's structure/height.
     AgeMap age_map;       ///< Bitmap of plate's soil's age: timestamp of creation.
-    Bounds* _bounds;
-    Mass _mass;
-    Movement _movement;
-    ISegments* _segments;
-    MySegmentCreator* _mySegmentCreator;
+    std::shared_ptr<Bounds> bounds;
+    Mass mass;
+    Movement movement;
+    std::shared_ptr<Segments> segments;
+    std::shared_ptr<MySegmentCreator> mySegmentCreator;
 };
 
 #endif
