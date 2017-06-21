@@ -56,12 +56,12 @@ const uint32_t Segments::size() const
     return seg_data.size();
 }
 
-const ISegmentData& Segments::operator[](uint32_t index) const
+const ISegmentData& Segments::getSegmentData(uint32_t index) const
 {
     return seg_data.at(index);
 }
 
-ISegmentData& Segments::operator[](uint32_t index)
+ISegmentData& Segments::getSegmentData(uint32_t index)
 {
     return seg_data.at(index);
 }

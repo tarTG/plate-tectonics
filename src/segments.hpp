@@ -41,8 +41,8 @@ public:
     virtual void reassign(const uint32_t newarea,const std::vector<uint32_t>& tmps) = 0;
     virtual void shift(const Platec::vec2ui& dir) = 0;
     virtual const uint32_t size() const = 0;
-    virtual const ISegmentData& operator[](const uint32_t index) const = 0;
-    virtual ISegmentData& operator[](const uint32_t index) = 0;
+    virtual const ISegmentData& getSegmentData(const uint32_t index) const = 0;
+    virtual ISegmentData& getSegmentData(const uint32_t index) = 0;
     virtual void add(const SegmentData& data) = 0;
     // Continent at the give world index
     virtual const ContinentId& id(const uint32_t index) const = 0;
@@ -71,8 +71,8 @@ public:
     void reassign(const uint32_t newarea,const std::vector<uint32_t>& tmps) override;
     void shift(const Platec::vec2ui& dir) override;
     const uint32_t size() const override;
-    const ISegmentData& operator[](const uint32_t index) const override; 
-    ISegmentData& operator[](const uint32_t index) override;
+    const ISegmentData& getSegmentData(const uint32_t index) const override; 
+    ISegmentData& getSegmentData(const uint32_t index) override;
     void add(const SegmentData& data) override;
     const ContinentId& id(const uint32_t index) const override;
     ContinentId& id(const uint32_t index) override;

@@ -80,19 +80,23 @@ uint32_t plate::addCollision(const Platec::vec2ui& point)
 void plate::addCrustByCollision(uint32_t x, uint32_t y, float z, uint32_t time, ContinentId activeContinent)
 {
     // Add crust. Extend plate if necessary.
-    setCrust(x, y, getCrust(x, y) + z, time);
+    setCrust(Platec::vec2ui(x, y), getCrust(Platec::vec2ui(x, y)) + z, time);
 
     auto index = bounds->getValidMapIndex(Platec::vec2ui( x, y));
     segments->setId(index.first, activeContinent);
 
-    ISegmentData& data = (*segments)[activeContinent];
+    ISegmentData& data = segments->getSegmentData(activeContinent);
     data.incArea();
     data.enlarge_to_contain(index.second);
 }
 
-void plate::addCrustBySubduction(uint32_t x, uint32_t y, float z, uint32_t t,
-                                 float dx, float dy)
+void plate::addCrustBySubduction(const Platec::vec2ui& originPoint,const float_t sediment,const uint32_t time,
+                              const Platec::vec2f& dir)
 {
+    if(sediment <= 0) //should be checked earliers
+    {
+        return;
+    }
     // TODO: Create an array of coordinate changes that would create
     //       a circle around current point. Array is static and it is
     //       initialized at the first call to this function.
@@ -107,41 +111,43 @@ void plate::addCrustBySubduction(uint32_t x, uint32_t y, float z, uint32_t t,
     //       Drawbacks:
     //           Additional logic required
     //           Might place crust on other continent on same plate!
-    auto index = bounds->getValidMapIndex(Platec::vec2ui(x,y));
+
 
     // Take vector difference only between plates that move more or less
     // to same direction. This makes subduction direction behave better.
     //
     // Use of "this" pointer is not necessary, but it make code clearer.
     // Cursed be those who use "m_" prefix in member names! >(
-    float dot = movement.dot(Platec::vec2f(dx,dy));
-    dx -= movement.velocityOn(dot > 0).x();
-    dy -= movement.velocityOn(dot > 0).y();
+    auto dotDir = dir;
+    if(movement.dot(dir) > 0)
+    {
+        dotDir = dotDir - movement.velocityVector();
+    }
+    
+    //What the hell is he doin here. Why have we to calculete 10 * x +3 ????
+    auto offset =std::pow((float_t)randsource.next_double(),3);
+     offset = std::copysign(offset,  2 * (int)(randsource.next() % 2) - 1); 
+    
+    auto offset2 =std::copysign(std::pow((float_t)randsource.next_double(),3),
+                                                    randsource.next_signed()); 
+    
+    dotDir = Platec::vec2f(10 * dotDir.x() + 3 * offset,10 * dotDir.y() + 3 * offset2);
 
-    float offset = (float)randsource.next_double();
-    float offset_sign = 2 * (int)(randsource.next() % 2) - 1;
-    offset *= offset * offset * offset_sign;
-    float offset2 = (float)randsource.next_double();
-    float offset_sign2 = 2 * (int)(randsource.next() % 2) - 1;
-    offset2 *= offset2 * offset2 * offset_sign2;
-    dx = 10 * dx + 3 * offset;
-    dy = 10 * dy + 3 * offset2;
-
-    float fx = index.second.x() + dx;
-    float fy = index.second.y() + dy;
-
-    auto p = Platec::vec2ui(fx, fy);
-    if (bounds->isInLimits(p))
+    const auto p =  Platec::vec2ui(dotDir.x(),dotDir.y()) + bounds->getValidMapIndex(originPoint).second; 
+    if (bounds->isInLimits(p) )
     {
         
         uint32_t tmpindex = bounds->index(p);
-        if (map[tmpindex] > 0)
-        {
-            t = (map[tmpindex] * age_map[tmpindex] + z * t) / (map[tmpindex] + z);
-            age_map[tmpindex] = t * (z > 0);
+        auto mapItr = map.getData().begin() + tmpindex;
+        auto ageMapItr = age_map.getData().begin() + tmpindex;
 
-            map[tmpindex] += z;
-            mass.incMass(z);
+        if (*mapItr > 0 )
+        {
+
+            *ageMapItr = ((*mapItr) * (*ageMapItr) + sediment * time) / ((*mapItr) + sediment);
+
+            (*mapItr) += sediment;
+            mass.incMass(sediment);
         }
     }
 }
@@ -169,11 +175,11 @@ float plate::aggregateCrust(plate* p, uint32_t wx, uint32_t wy)
     // causes continent to aggregate then all successive collisions and
     // attempts of aggregation would necessarily change nothing at all,
     // because the continent was removed from this plate earlier!
-    if ((*segments)[seg_id].isEmpty()) {
+    if (segments->getSegmentData(seg_id).isEmpty()) {
         return 0;   // Do not process empty continents.
     }
 
-    ContinentId activeContinent = p->selectCollisionSegment(wx, wy);
+    ContinentId activeContinent = p->selectCollisionSegment(Platec::vec2ui(wx, wy));
 
     // Wrap coordinates around world edges to safeguard subtractions.
     wx += worldDimension.getWidth();
@@ -187,9 +193,9 @@ float plate::aggregateCrust(plate* p, uint32_t wx, uint32_t wy)
     float old_mass = mass.getMass();
 
     // Add all of the collided continent's crust to destination plate.
-    for (uint32_t y = (*segments)[seg_id].getTop(); y <= (*segments)[seg_id].getBottom(); ++y)
+    for (uint32_t y = segments->getSegmentData(seg_id).getTop(); y <= segments->getSegmentData(seg_id).getBottom(); ++y)
     {
-        for (uint32_t x = (*segments)[seg_id].getLeft(); x <= (*segments)[seg_id].getRight(); ++x)
+        for (uint32_t x = segments->getSegmentData(seg_id).getLeft(); x <= segments->getSegmentData(seg_id).getRight(); ++x)
         {
             const uint32_t i = y * bounds->width() + x;
             if ((segments->id(i) == seg_id) && (map[i] > 0))
@@ -203,11 +209,11 @@ float plate::aggregateCrust(plate* p, uint32_t wx, uint32_t wy)
         }
     }
 
-    (*segments)[seg_id].markNonExistent(); // Mark segment as non-existent
+    segments->getSegmentData(seg_id).markNonExistent(); // Mark segment as non-existent
     return old_mass - mass.getMass();
 }
 
-void plate::applyFriction(float deformed_mass)
+void plate::applyFriction(const float_t deformed_mass)
 {
     // Remove the energy that deformation consumed from plate's kinetic
     // energy: F - dF = ma - dF => a = dF/m.
@@ -217,7 +223,7 @@ void plate::applyFriction(float deformed_mass)
     }
 }
 
-void plate::collide(plate& p, uint32_t wx, uint32_t wy, float coll_mass)
+void plate::collide(plate& p,const float_t coll_mass)
 {
     if (!mass.isNull() && coll_mass > 0) {
         movement.collide(mass, p, coll_mass);
@@ -375,7 +381,7 @@ void plate::erode(float lower_bound)
             uint32_t w, e, n, s;
             calculateCrust(x, y, index, w_crust, e_crust, n_crust, s_crust,
                            w, e, n, s);
-
+            
             // This location has no neighbours (ARTIFACT!) or it is the lowest
             // part of its area. In either case the work here is done.
             if (w_crust + e_crust + n_crust + s_crust == 0)
@@ -463,31 +469,35 @@ void plate::erode(float lower_bound)
     mass = massBuilder.build();
 }
 
-void plate::getCollisionInfo(uint32_t wx, uint32_t wy, uint32_t* count, float* ratio) const
+const std::pair<uint32_t,float_t> plate::getCollisionInfo(const Platec::vec2ui& point) const
 {
-    const ISegmentData& seg = getContinentAt(Platec::vec2ui(wx, wy));
+    const ISegmentData& seg = getContinentAt(point);
 
-    *count = seg.collCount();
-    *ratio = (float)seg.collCount() /
-             (float)(1 + seg.getArea()); // +1 avoids DIV with zero.
+    if(seg.getArea() == 0)
+    {
+        return  std::make_pair(seg.collCount(),seg.collCount());
+    }
+    return std::make_pair(seg.collCount(),seg.collCount() /(float_t)(seg.getArea()));
+
+
 }
 
-uint32_t plate::getContinentArea(uint32_t wx, uint32_t wy) const
+uint32_t plate::getContinentArea(const Platec::vec2ui& point) const
 {
-    const auto index = bounds->getValidMapIndex(Platec::vec2ui(wx, wy));
+    const auto index = bounds->getValidMapIndex(point);
     ASSERT(segments->id(index.first) < segments->size(), "Segment index invalid");
-    return (*segments)[segments->id(index.first)].getArea();
+    return segments->getSegmentData(segments->id(index.first)).getArea();
 }
 
-float plate::getCrust(uint32_t x, uint32_t y) const
+float_t plate::getCrust(const Platec::vec2ui& point) const
 {
-    const auto index = bounds->getMapIndex(Platec::vec2ui(x, y));
+    const auto index = bounds->getMapIndex(point);
     return index.first != BAD_INDEX ? map[index.first] : 0;
 }
 
-uint32_t plate::getCrustTimestamp(uint32_t x, uint32_t y) const
+uint32_t plate::getCrustTimestamp(const Platec::vec2ui& point) const
 {
-    const auto index = bounds->getMapIndex(Platec::vec2ui(x, y));
+    const auto index = bounds->getMapIndex(point);
     return index.first != BAD_INDEX ? age_map[index.first] : 0;
 }
 
@@ -504,10 +514,6 @@ void plate::getMap(const float** c, const uint32_t** t) const
 void plate::move(const Dimension& worldDimension)
 {
     movement.move(worldDimension);
-
-    // Location modulations into range [0..world width/height[ are a have to!
-    // If left undone SOMETHING WILL BREAK DOWN SOMEWHERE in the code!
-
     bounds->shift(movement.velocityVector());
 }
 
@@ -517,14 +523,14 @@ void plate::resetSegments()
     segments->reset();
 }
 
-void plate::setCrust(uint32_t x, uint32_t y, float z, uint32_t t)
+void plate::setCrust(const Platec::vec2ui& point, float_t z, uint32_t t)
 {
-    if (z < 0) { // Do not accept negative values.
-        z = 0;
-    }
+    
+    // Do not accept negative values.
+    z = std::max(0.f,z);
 
 
-    auto index = bounds->getMapIndex(Platec::vec2ui(x, y));
+    auto index = bounds->getMapIndex(point);
 
     if (index.first == BAD_INDEX)
     {
@@ -536,16 +542,15 @@ void plate::setCrust(uint32_t x, uint32_t y, float z, uint32_t t)
         const uint32_t irgt = bounds->rightAsUintNonInclusive();
         const uint32_t ibtm = bounds->bottomAsUintNonInclusive();
 
-        auto point = worldDimension.normalize(Platec::vec2ui(x,y));
+        auto normPoint = worldDimension.normalize(point);
         
-        x = point.x();
-        y = point.y();
+
         
         // Calculate distance of new point from plate edges.
-        const uint32_t _lft = ilft - x;
-        const uint32_t _rgt = (worldDimension.getWidth() & -(x < ilft)) + x - irgt;
-        const uint32_t _top = itop - y;
-        const uint32_t _btm = (worldDimension.getHeight() & -(y < itop)) + y - ibtm;
+        const uint32_t _lft = ilft - normPoint.x();
+        const uint32_t _rgt = (worldDimension.getWidth() & -(normPoint.x() < ilft)) + normPoint.x() - irgt;
+        const uint32_t _top = itop - normPoint.y();
+        const uint32_t _btm = (worldDimension.getHeight() & -(normPoint.y() < itop)) + normPoint.y() - ibtm;
 
         // Set larger of horizontal/vertical distance to zero.
         // A valid distance is NEVER larger than world's side's length!
@@ -610,7 +615,7 @@ void plate::setCrust(uint32_t x, uint32_t y, float z, uint32_t t)
         segments->shift(Platec::vec2ui(d_lft, d_top));
 
 
-        index = bounds->getValidMapIndex(Platec::vec2ui(x, y));
+        index = bounds->getValidMapIndex(normPoint);
 
         assert(index.first < bounds->area());
     }
@@ -629,11 +634,9 @@ void plate::setCrust(uint32_t x, uint32_t y, float z, uint32_t t)
     map[index.first] = z;     // Set new crust height to desired location.
 }
 
-ContinentId plate::selectCollisionSegment(uint32_t coll_x, uint32_t coll_y)
+ContinentId plate::selectCollisionSegment(const Platec::vec2ui& point) const
 {
-    auto index = bounds->getValidMapIndex(Platec::vec2ui(coll_x,coll_y));
-    ContinentId activeContinent = segments->id(index.first);
-    return activeContinent;
+    return segments->id(bounds->getValidMapIndex(point).first);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -647,10 +650,10 @@ uint32_t plate::createSegment(const Platec::vec2ui& point)
 
 ISegmentData& plate::getContinentAt(const Platec::vec2ui& point)
 {
-    return (*segments)[segments->getContinentAt(point,worldDimension)];
+    return segments->getSegmentData(segments->getContinentAt(point,worldDimension));
 }
 
 const ISegmentData& plate::getContinentAt(const Platec::vec2ui& point) const
 {
-    return (*segments)[segments->getContinentAt(point,worldDimension)];
+    return segments->getSegmentData(segments->getContinentAt(point,worldDimension));
 }

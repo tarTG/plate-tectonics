@@ -97,9 +97,9 @@ ContinentId MySegmentCreator::createSegment(const Platec::vec2ui& point,
     if (nbour_id < ID)
     {
         segments->setId(origin_index, nbour_id);
-        (*segments)[nbour_id].incArea();
+        segments->getSegmentData(nbour_id).incArea();
 
-        (*segments)[nbour_id].enlarge_to_contain(point);
+        segments->getSegmentData(nbour_id).enlarge_to_contain(point);
 
         return nbour_id;
     }

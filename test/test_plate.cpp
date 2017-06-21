@@ -209,14 +209,14 @@ public:
     virtual const uint32_t size() const {
         throw std::runtime_error("(MockSegments::size) Not implemented");
     }
-    virtual const ISegmentData& operator[](uint32_t index) const {
+    virtual const ISegmentData& getSegmentData(uint32_t index) const {
         if (index == _id) {
             return *_data;
         } else {
             throw std::runtime_error("(MockSegments::operator[]) Unexpected call");
         }
     }
-    virtual ISegmentData& operator[](uint32_t index) {
+    virtual ISegmentData& getSegmentData(uint32_t index) {
         if (index == _id) {
             return *_data;
         } else {
@@ -290,14 +290,14 @@ public:
     virtual const uint32_t size() const {
         throw std::runtime_error("(MockSegments2::size) Not implemented");
     }
-    virtual const ISegmentData& operator[](uint32_t index) const {
+    virtual const ISegmentData& getSegmentData(uint32_t index) const {
         if (index == _id) {
             return *_data;
         } else {
             throw std::runtime_error("(MockSegments2::operator[]) Unexpected call");
         }
     }
-    virtual ISegmentData& operator[](uint32_t id) {
+    virtual ISegmentData& getSegmentData(uint32_t id) {
         if (id == _id) {
             return *_data;
         } else {
@@ -371,8 +371,8 @@ TEST(Plate, addCrustByCollision)
     std::shared_ptr<MockSegments2> mSegments = std::make_shared<MockSegments2>(Platec::vec2ui(worldPointX, worldPointY), 99, mSeg, indexInPlate);
     p.injectSegments(mSegments);
 
-    uint32_t timestampIn_240_120before = p.getCrustTimestamp(worldPointX, worldPointY);
-    float crustIn_240_120before = p.getCrust(worldPointX, worldPointY);
+    uint32_t timestampIn_240_120before = p.getCrustTimestamp(Platec::vec2ui(worldPointX, worldPointY));
+    float crustIn_240_120before = p.getCrust(Platec::vec2ui(worldPointX, worldPointY));
 
     // Assumptions:
     // the point is in the plate bounds
@@ -384,12 +384,12 @@ TEST(Plate, addCrustByCollision)
         99); // Active continent
 
     // Age of the point should be updated
-    uint32_t timestampIn_240_120after = p.getCrustTimestamp(worldPointX, worldPointY);
+    uint32_t timestampIn_240_120after = p.getCrustTimestamp(Platec::vec2ui(worldPointX, worldPointY));
     ASSERT_EQ(true, timestampIn_240_120after > timestampIn_240_120before);
     ASSERT_EQ(true, timestampIn_240_120after < 123 );
 
     // Crust should be increased
-    float crustIn_240_120after = p.getCrust(worldPointX, worldPointY);
+    float crustIn_240_120after = p.getCrust(Platec::vec2ui(worldPointX, worldPointY));
     EXPECT_FLOAT_EQ(crustIn_240_120before + 0.8f, crustIn_240_120after);
 
     // The activeContinent should now owns the point
@@ -428,8 +428,8 @@ TEST(Plate, addCrustBySubduction)
     std::shared_ptr<MockSegments2>  mSegments = std::make_shared<MockSegments2>(Platec::vec2ui(worldPointX, worldPointY), 99, mSeg, indexInPlate);
     p.injectSegments(mSegments);
 
-    uint32_t timestampIn_240_120before = p.getCrustTimestamp(worldPointX, worldPointY);
-    float crustIn_240_120before = p.getCrust(worldPointX, worldPointY);
+    uint32_t timestampIn_240_120before = p.getCrustTimestamp(Platec::vec2ui(worldPointX, worldPointY));
+    float crustIn_240_120before = p.getCrust(Platec::vec2ui(worldPointX, worldPointY));
 
     float massBefore = p.getMass();
 
@@ -438,13 +438,13 @@ TEST(Plate, addCrustBySubduction)
     float dx = 0.0f;
     float dy = 0.0f;
     p.addCrustBySubduction(
-        worldPointX, worldPointY, // Point of impact
+        Platec::vec2ui(worldPointX, worldPointY), // Point of impact
         0.8f, // Amount of crust
         123, // Current age
-        dx, dy); // Direction of the subducting plate
+        Platec::vec2f(dx, dy)); // Direction of the subducting plate
 
     // Crust should be increased
-    float crustIn_240_120after = p.getCrust(worldPointX, worldPointY);
+    float crustIn_240_120after = p.getCrust(Platec::vec2ui(worldPointX, worldPointY));
     EXPECT_FLOAT_EQ(crustIn_240_120before + 0.8f, crustIn_240_120after);
 
     // The mass should be increased
@@ -452,7 +452,7 @@ TEST(Plate, addCrustBySubduction)
     EXPECT_EQ(massBefore + 0.8f, massAfter);
 
     // Age of the point should be updated
-    uint32_t timestampIn_240_120after = p.getCrustTimestamp(worldPointX, worldPointY);
+    uint32_t timestampIn_240_120after = p.getCrustTimestamp(Platec::vec2ui(worldPointX, worldPointY));
     ASSERT_EQ(true, timestampIn_240_120after > timestampIn_240_120before);
     ASSERT_EQ(true, timestampIn_240_120after < 123 );
 }

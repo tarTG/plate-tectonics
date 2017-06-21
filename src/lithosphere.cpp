@@ -365,11 +365,11 @@ void lithosphere::resolveJuxtapositions(const uint32_t& i, const uint32_t& j, co
 
         // Give some...
         hmap[k] += coll.crust;
-        plates[imap[k]]->setCrust(x_mod, y_mod, hmap[k],
+        plates[imap[k]]->setCrust(Platec::vec2ui(x_mod, y_mod), hmap[k],
                                   this_age[j]);
 
         // And take some.
-        plates[i]->setCrust(x_mod, y_mod, this_map[j] *
+        plates[i]->setCrust(Platec::vec2ui(x_mod, y_mod), this_map[j] *
                             (1.0 - folding_ratio), this_age[j]);
 
         // Add collision to the earlier plate's list.
@@ -381,10 +381,10 @@ void lithosphere::resolveJuxtapositions(const uint32_t& i, const uint32_t& j, co
         plateCollision coll(i, x_mod, y_mod,
                             hmap[k] * folding_ratio);
 
-        plates[i]->setCrust(x_mod, y_mod,
+        plates[i]->setCrust(Platec::vec2ui(x_mod, y_mod),
                             this_map[j]+coll.crust, amap[k]);
 
-        plates[imap[k]]->setCrust(x_mod, y_mod, hmap[k]
+        plates[imap[k]]->setCrust(Platec::vec2ui(x_mod, y_mod), hmap[k]
                                   * (1.0 - folding_ratio), amap[k]);
 
         collisions[imap[k]].push_back(coll);
@@ -458,7 +458,7 @@ void lithosphere::updateHeightAndPlateIndexMaps(const uint32_t& map_area,
                 const bool this_is_oceanic = this_map[j] < CONTINENTAL_BASE;
 
                 const uint32_t prev_timestamp = plates[imap[k]]->
-                                                getCrustTimestamp(x_mod, y_mod);
+                                                getCrustTimestamp(Platec::vec2ui(x_mod, y_mod));
                 const uint32_t this_timestamp = this_age[j];
                 const uint32_t prev_is_bouyant = (hmap[k] > this_map[j]) |
                                                  ((hmap[k] + 2 * FLT_EPSILON > this_map[j]) &
@@ -485,7 +485,7 @@ void lithosphere::updateHeightAndPlateIndexMaps(const uint32_t& map_area,
                     // a) having correct amount of colliding crust (below)
                     // b) protecting subducted locations from receiving
                     //    crust from other subductions/collisions.
-                    plates[i]->setCrust(x_mod, y_mod, this_map[j] -
+                    plates[i]->setCrust(Platec::vec2ui(x_mod, y_mod), this_map[j] -
                                         OCEANIC_BASE, this_timestamp);
 
                     if (this_map[j] <= 0)
@@ -499,7 +499,7 @@ void lithosphere::updateHeightAndPlateIndexMaps(const uint32_t& map_area,
                     subductions[i].push_back(coll);
                     ++oceanic_collisions;
 
-                    plates[imap[k]]->setCrust(x_mod, y_mod, hmap[k] -
+                    plates[imap[k]]->setCrust(Platec::vec2ui(x_mod, y_mod), hmap[k] -
                                               OCEANIC_BASE, prev_timestamp);
                     hmap[k] -= OCEANIC_BASE;
 
@@ -535,11 +535,12 @@ void lithosphere::updateCollisions()
             plates[i]->applyFriction(coll.crust);
             plates[coll.index]->applyFriction(coll.crust);
 
-            plates[i]->getCollisionInfo(coll.wx, coll.wy,
-                                        &coll_count_i, &coll_ratio_i);
-            plates[coll.index]->getCollisionInfo(coll.wx,
-                                                 coll.wy, &coll_count_j, &coll_ratio_j);
-
+            auto pair1 = plates[i]->getCollisionInfo(Platec::vec2ui(coll.wx, coll.wy));
+            coll_count_i = pair1.first;
+            coll_ratio_i = pair1.second;
+            auto pair2 = plates[coll.index]->getCollisionInfo(Platec::vec2ui(coll.wx, coll.wy));
+            coll_count_i = pair2.first;
+            coll_ratio_i = pair2.second;
             // Find the minimum count of collisions between two
             // continents on different plates.
             // It's minimum because large plate will get collisions
@@ -569,8 +570,7 @@ void lithosphere::updateCollisions()
                 // Calculate new direction and speed for the
                 // merged plate system, that is, for the
                 // receiving plate!
-                plates[coll.index]->collide(*plates[i],
-                                            coll.wx, coll.wy, amount);
+                plates[coll.index]->collide(*plates[i], amount);
             }
         }
 
@@ -663,9 +663,8 @@ void lithosphere::update()
                 // This is a very cheap way to emulate slab pull.
                 // Just perform subduction and on our way we go!
                 plates[i]->addCrustBySubduction(
-                    coll.wx, coll.wy, coll.crust, iter_count,
-                    plates[coll.index]->getVelX(),
-                    plates[coll.index]->getVelY());
+                    Platec::vec2ui(coll.wx, coll.wy), coll.crust, iter_count,
+                  plates[coll.index]->getVelocityVector());
             }
 
             subductions[i].clear();
@@ -692,7 +691,7 @@ void lithosphere::update()
 
                     // This should probably not happen
                     if (imap[i] < num_plates) {
-                        plates[imap[i]]->setCrust(x, y, OCEANIC_BASE,
+                        plates[imap[i]]->setCrust(Platec::vec2ui(x, y), OCEANIC_BASE,
                                                   iter_count);
                     }
 
