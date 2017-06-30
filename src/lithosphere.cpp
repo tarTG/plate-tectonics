@@ -539,8 +539,8 @@ void lithosphere::updateCollisions()
             coll_count_i = pair1.first;
             coll_ratio_i = pair1.second;
             auto pair2 = plates[coll.index]->getCollisionInfo(Platec::vec2ui(coll.wx, coll.wy));
-            coll_count_i = pair2.first;
-            coll_ratio_i = pair2.second;
+            coll_count_j = pair2.first;
+            coll_ratio_j = pair2.second;
             // Find the minimum count of collisions between two
             // continents on different plates.
             // It's minimum because large plate will get collisions

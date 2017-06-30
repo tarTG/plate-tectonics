@@ -65,7 +65,7 @@ public:
 class MySegmentCreator : public ISegmentCreator
 {
 public:
-    MySegmentCreator(Bounds& bounds, std::shared_ptr<ISegments> segments, HeightMap& map_);
+    MySegmentCreator(std::shared_ptr<Bounds> bounds, std::shared_ptr<ISegments> segments, HeightMap& map_);
     /// Separate a continent at (X, Y) to its own partition.
     ///
     /// Method analyzes the pixels 4-ways adjacent at the given location
@@ -89,7 +89,7 @@ private:
     const bool usablePoint(const uint32_t index, const ContinentId ID) const;
     std::vector<Span> fillLineWithID(const Span& span, const uint32_t line,
                                         const ContinentId ID ) ;
-    Bounds& bounds;
+    std::shared_ptr<Bounds>  bounds;
     std::shared_ptr<ISegments> segments;
     HeightMap& map;
 

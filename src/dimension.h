@@ -46,7 +46,7 @@ public:
     bool contains(const Platec::Vector2D<T>& p) const {
         //using std::floor here to avoid floating point inaccuarcy
        return (std::floor(p.x()) >= 0 && std::floor(p.x()) < getWidth()  
-               && std::floor(p.y()) >= 0.0f && std::floor(p.y()) < getHeight());
+               && std::floor(p.y()) >= 0 && std::floor(p.y()) < getHeight());
     }
     void grow(Platec::vec2ui growSize);
 

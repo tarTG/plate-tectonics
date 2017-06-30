@@ -29,6 +29,7 @@
 #include <vector>
 #include <stdexcept> // std::invalid_argument
 #include <assert.h>
+#include <unistd.h>
 #include "plate.hpp"
 #include "heightmap.hpp"
 #include "utils.hpp"
@@ -64,7 +65,7 @@ plate::plate(const long seed,const HeightMap&  m,
 
 
     segments = std::make_shared<Segments>(plate_area);
-    mySegmentCreator = std::make_shared<MySegmentCreator>(*bounds, segments, map);
+    mySegmentCreator = std::make_shared<MySegmentCreator>(bounds, segments, map);
     segments->setSegmentCreator(mySegmentCreator);
     segments->setBounds(bounds);
 }
@@ -77,12 +78,13 @@ uint32_t plate::addCollision(const Platec::vec2ui& point)
     return seg.getArea();
 }
 
-void plate::addCrustByCollision(uint32_t x, uint32_t y, float z, uint32_t time, ContinentId activeContinent)
+void plate::addCrustByCollision(const Platec::vec2ui& point,const float_t z,
+                            const uint32_t time,const ContinentId activeContinent)
 {
     // Add crust. Extend plate if necessary.
-    setCrust(Platec::vec2ui(x, y), getCrust(Platec::vec2ui(x, y)) + z, time);
+    setCrust(point, getCrust(point) + z, time);
 
-    auto index = bounds->getValidMapIndex(Platec::vec2ui( x, y));
+    auto index = bounds->getValidMapIndex(point);
     segments->setId(index.first, activeContinent);
 
     ISegmentData& data = segments->getSegmentData(activeContinent);
@@ -200,7 +202,7 @@ float plate::aggregateCrust(plate* p, uint32_t wx, uint32_t wy)
             const uint32_t i = y * bounds->width() + x;
             if ((segments->id(i) == seg_id) && (map[i] > 0))
             {
-                p->addCrustByCollision(wx + x - index.second.x(), wy + y - index.second.y(),
+                p->addCrustByCollision(Platec::vec2ui(wx + x - index.second.x(), wy + y - index.second.y()),
                                        map[i], age_map[i], activeContinent);
 
                 mass.incMass(-1.0f * map[i]);
@@ -230,42 +232,106 @@ void plate::collide(plate& p,const float_t coll_mass)
     }
 }
 
-void plate::calculateCrust(uint32_t x, uint32_t y, uint32_t index,
-                           float& w_crust, float& e_crust, float& n_crust, float& s_crust,
-                           uint32_t& w, uint32_t& e, uint32_t& n, uint32_t& s)
+const surroundingPoints plate::calculateCrust(const Platec::vec2ui& position, const float_t height)
 {
-    ::calculateCrust(x, y, index, w_crust, e_crust, n_crust, s_crust,
-                     w, e, n, s,
-                     worldDimension, map, bounds->width(), bounds->height());
+    surroundingPoints ret;
+    // Build masks for accessible directions (4-way).
+    // Allow wrapping around map edges if plate has world wide dimensions.
+    const uint32_t world_height = worldDimension.getHeight();
+    bool height_bit = bounds->height() == world_height;
+    
+    if(position.x() != 0)
+    {
+        ret.westIndex = bounds->index(position- Platec::vec2ui(1,0));
+        if(map[ret.westIndex] < height)
+        {
+          ret.westCrust = map[ret.westIndex];
+        }
+    }
+    else
+    {
+        ret.westIndex = bounds->index(Platec::vec2ui(0,position.y()));
+    }
+    
+  
+    ret.eastIndex = bounds->index(bounds->getDimension().xMod(position +Platec::vec2ui(1,0))) ;
+    if(map[ret.eastIndex] < height)
+    {
+      ret.eastCrust = map[ret.eastIndex];
+    }
+
+//    if(position.y() > 0| height_bit)
+//    {
+////        ret.northIndex = bounds->index(position - Platec::vec2ui(0,1));
+////        if(map[ret.northIndex] < height)
+////        {
+////          ret.northCrust = map[ret.northIndex];
+////        }
+//
+//        // Calculate the x and y offset of neighbour directions.
+//        // If neighbour is out of plate edges, set it to zero. This protects
+//        // map memory reads from segment faulting.
+//        const uint32_t y_mod = bounds->getDimension().yMod(position.y());
+//
+//        uint32_t y_mod_minus_1 = y_mod == 0 ? 0 : y_mod - 1;
+//        
+//        ret.northIndex = bounds->index(Platec::vec2ui(position.x(),y_mod_minus_1));
+//
+//        ret.northCrust = map[ret.northIndex] * ((map[ret.northIndex] < height));
+//    }
+//    else
+//    {
+//        ret.northCrust = bounds->index(Platec::vec2ui(position.x(),0));
+//    }
+    
+    
+   ret.southIndex = bounds->index(bounds->getDimension().yMod(position +Platec::vec2ui(0,1))) ;
+    if(map[ret.southIndex] < height)
+    {
+      ret.southCrust = map[ret.southIndex];
+    }    
+    
+    uint32_t n_mask = -((position.y() > 0)   | height_bit       );
+
+    // Calculate the x and y offset of neighbour directions.
+    // If neighbour is out of plate edges, set it to zero. This protects
+    // map memory reads from segment faulting.
+    const uint32_t y_mod = bounds->getDimension().yMod(position.y());
+            
+    uint32_t y_mod_minus_1 = y_mod == 0 ? 0 : y_mod - 1;
+
+     uint32_t       n = n_mask==-1 ? y_mod_minus_1 : 0;
+    ret.northIndex = bounds->index(Platec::vec2ui(position.x(),n));
+
+    ret.northCrust = map[ret.northIndex] * (n_mask & (map[ret.northIndex] < height));
+
+    return ret;
 }
 
-void plate::findRiverSources(float lower_bound, vector<uint32_t>* sources)
+void plate::findRiverSources(const float_t lower_bound, vector<uint32_t>& sources)
 {
     const uint32_t bounds_height = bounds->height();
     const uint32_t bounds_width = bounds->width();
+    
 
     // Find all tops.
     for (uint32_t y = 0; y < bounds_height; ++y) {
-        const uint32_t y_width = y * bounds_width;
+      //  const uint32_t y_width = y * bounds_width;
         for (uint32_t x = 0; x < bounds_width; ++x) {
-            const uint32_t index = y_width + x;
+            const uint32_t index = bounds->index(Platec::vec2ui(x, y));
 
             if (map[index] < lower_bound) {
                 continue;
             }
 
-            float w_crust, e_crust, n_crust, s_crust;
-            uint32_t w, e, n, s;
-            calculateCrust(x, y, index, w_crust, e_crust, n_crust, s_crust,
-                           w, e, n, s);
 
             // This location is either at the edge of the plate or it is not the
             // tallest of its neightbours. Don't start a river from here.
-            if (w_crust * e_crust * n_crust * s_crust == 0) {
+            if (calculateCrust(Platec::vec2ui(x, y),map[index]).onIsLower()) {
                 continue;
             }
 
-            sources->push_back(index);
+            sources.push_back(index);
         }
     }
 }
@@ -274,7 +340,6 @@ void plate::flowRivers(float lower_bound, vector<uint32_t>* sources, HeightMap& 
 {
     const uint32_t bounds_area = bounds->area();
     vector<uint32_t> sinks_data;
-    vector<uint32_t>* sinks = &sinks_data;
 
     static vector<bool> s_flowDone;
     if (s_flowDone.size() < bounds_area) {
@@ -295,43 +360,40 @@ void plate::flowRivers(float lower_bound, vector<uint32_t>* sources, HeightMap& 
                 continue;
             }
 
-            float w_crust, e_crust, n_crust, s_crust;
-            uint32_t w, e, n, s;
-            calculateCrust(x, y, index, w_crust, e_crust, n_crust, s_crust,
-                           w, e, n, s);
+            surroundingPoints neighbors = calculateCrust(Platec::vec2ui(x, y), map[index]);
 
             // If this is the lowest part of its neighbourhood, stop.
-            if (w_crust + e_crust + n_crust + s_crust == 0) {
+            if (neighbors.oneIsHigher()) {
                 continue;
             }
 
-            w_crust += (w_crust == 0) * map[index];
-            e_crust += (e_crust == 0) * map[index];
-            n_crust += (n_crust == 0) * map[index];
-            s_crust += (s_crust == 0) * map[index];
+            neighbors.westCrust += (neighbors.westCrust == 0) * map[index];
+            neighbors.eastCrust += (neighbors.eastCrust == 0) * map[index];
+            neighbors.northCrust += (neighbors.northCrust == 0) * map[index];
+            neighbors.southCrust += (neighbors.southCrust == 0) * map[index];
 
             // Find lowest neighbour.
-            float lowest_crust = w_crust;
+            float lowest_crust = neighbors.westCrust;
             uint32_t dest = index - 1;
 
-            if (e_crust < lowest_crust) {
-                lowest_crust = e_crust;
+            if (neighbors.eastCrust < lowest_crust) {
+                lowest_crust = neighbors.eastCrust;
                 dest = index + 1;
             }
 
-            if (n_crust < lowest_crust) {
-                lowest_crust = n_crust;
+            if (neighbors.northCrust < lowest_crust) {
+                lowest_crust = neighbors.northCrust;
                 dest = index - bounds->width();
             }
 
-            if (s_crust < lowest_crust) {
-                lowest_crust = s_crust;
+            if (neighbors.southCrust < lowest_crust) {
+                lowest_crust = neighbors.southCrust;
                 dest = index + bounds->width();
             }
 
             // if it's not handled yet, add it as new sink.
             if (dest < bounds->area() && !s_flowDone[dest]) {
-                sinks->push_back(dest);
+                sinks_data.push_back(dest);
                 s_flowDone[dest] = true;
             }
 
@@ -340,10 +402,8 @@ void plate::flowRivers(float lower_bound, vector<uint32_t>* sources, HeightMap& 
         }
 
 
-        vector<uint32_t>* v_tmp = sources;
-        sources = sinks;
-        sinks = v_tmp;
-        sinks->clear();
+        sources->swap(sinks_data);
+        sinks_data.clear();
     }
 }
 
@@ -353,7 +413,7 @@ void plate::erode(float lower_bound)
     vector<uint32_t>* sources = &sources_data;
 
     HeightMap tmpHm(map);
-    findRiverSources(lower_bound, sources);
+    findRiverSources(lower_bound, sources_data);
     flowRivers(lower_bound, sources, tmpHm);
 
     // Add random noise (10 %) to heightmap.
@@ -377,14 +437,11 @@ void plate::erode(float lower_bound)
             if (map[index] < lower_bound)
                 continue;
 
-            float w_crust, e_crust, n_crust, s_crust;
-            uint32_t w, e, n, s;
-            calculateCrust(x, y, index, w_crust, e_crust, n_crust, s_crust,
-                           w, e, n, s);
+            surroundingPoints neighbors = calculateCrust(Platec::vec2ui(x, y), map[index]);
             
             // This location has no neighbours (ARTIFACT!) or it is the lowest
             // part of its area. In either case the work here is done.
-            if (w_crust + e_crust + n_crust + s_crust == 0)
+            if (neighbors.oneIsHigher())
                 continue;
 
             // The steeper the slope, the more water flows along it.
@@ -405,10 +462,10 @@ void plate::erode(float lower_bound)
 
             // Calculate the difference in height between this point and its
             // nbours that are lower than this point.
-            float w_diff = map[index] - w_crust;
-            float e_diff = map[index] - e_crust;
-            float n_diff = map[index] - n_crust;
-            float s_diff = map[index] - s_crust;
+            float w_diff = map[index] - neighbors.westCrust;
+            float e_diff = map[index] - neighbors.eastCrust;
+            float n_diff = map[index] - neighbors.northCrust;
+            float s_diff = map[index] - neighbors.southCrust;
 
             float min_diff = w_diff;
             min_diff -= (min_diff - e_diff) * (e_diff < min_diff);
@@ -417,10 +474,10 @@ void plate::erode(float lower_bound)
 
             // Calculate the sum of difference between lower neighbours and
             // the TALLEST lower neighbour.
-            float diff_sum = (w_diff - min_diff) * (w_crust > 0) +
-                             (e_diff - min_diff) * (e_crust > 0) +
-                             (n_diff - min_diff) * (n_crust > 0) +
-                             (s_diff - min_diff) * (s_crust > 0);
+            float diff_sum = (w_diff - min_diff) * (neighbors.westCrust > 0) +
+                             (e_diff - min_diff) * (neighbors.eastCrust > 0) +
+                             (n_diff - min_diff) * (neighbors.northCrust > 0) +
+                             (s_diff - min_diff) * (neighbors.southCrust > 0);
 
             // Erosion difference sum is negative!
             ASSERT(diff_sum >= 0, "Difference sum must be positive");
@@ -431,22 +488,22 @@ void plate::erode(float lower_bound)
                 // crust from this peak so that it would be as tall as its
                 // tallest lower neighbour. Thus first step is make ALL
                 // lower neighbours and this point equally tall.
-                tmpHm[w] += (w_diff - min_diff) * (w_crust > 0);
-                tmpHm[e] += (e_diff - min_diff) * (e_crust > 0);
-                tmpHm[n] += (n_diff - min_diff) * (n_crust > 0);
-                tmpHm[s] += (s_diff - min_diff) * (s_crust > 0);
+                tmpHm[neighbors.westIndex ] += (w_diff - min_diff) * (neighbors.westCrust > 0);
+                tmpHm[neighbors.eastIndex ] += (e_diff - min_diff) * (neighbors.eastCrust > 0);
+                tmpHm[neighbors.northIndex] += (n_diff - min_diff) * (neighbors.northCrust > 0);
+                tmpHm[neighbors.southIndex] += (s_diff - min_diff) * (neighbors.southCrust > 0);
                 tmpHm[index] -= min_diff;
 
                 min_diff -= diff_sum;
 
                 // Spread the remaining crust equally among all lower nbours.
-                min_diff /= 1 + (w_crust > 0) + (e_crust > 0) +
-                            (n_crust > 0) + (s_crust > 0);
+                min_diff /= 1 + (neighbors.westCrust > 0) + (neighbors.eastCrust > 0) +
+                            (neighbors.northCrust > 0) + (neighbors.southCrust > 0);
 
-                tmpHm[w] += min_diff * (w_crust > 0);
-                tmpHm[e] += min_diff * (e_crust > 0);
-                tmpHm[n] += min_diff * (n_crust > 0);
-                tmpHm[s] += min_diff * (s_crust > 0);
+                tmpHm[neighbors.westIndex ] += min_diff * (neighbors.westCrust > 0);
+                tmpHm[neighbors.eastIndex ] += min_diff * (neighbors.eastCrust > 0);
+                tmpHm[neighbors.northIndex] += min_diff * (neighbors.northCrust > 0);
+                tmpHm[neighbors.southIndex] += min_diff * (neighbors.southCrust > 0);
                 tmpHm[index] += min_diff;
             }
             else
@@ -458,10 +515,10 @@ void plate::erode(float lower_bound)
                 tmpHm[index] -= min_diff;
 
                 // Spread all removed crust among all other lower neighbours.
-                tmpHm[w] += unit * (w_diff - min_diff) * (w_crust > 0);
-                tmpHm[e] += unit * (e_diff - min_diff) * (e_crust > 0);
-                tmpHm[n] += unit * (n_diff - min_diff) * (n_crust > 0);
-                tmpHm[s] += unit * (s_diff - min_diff) * (s_crust > 0);
+                tmpHm[neighbors.westIndex ] += unit * (w_diff - min_diff) * (neighbors.westCrust > 0);
+                tmpHm[neighbors.eastIndex ] += unit * (e_diff - min_diff) * (neighbors.eastCrust > 0);
+                tmpHm[neighbors.northIndex] += unit * (n_diff - min_diff) * (neighbors.northCrust > 0);
+                tmpHm[neighbors.southIndex] += unit * (s_diff - min_diff) * (neighbors.southCrust > 0);
             }
         }
     }

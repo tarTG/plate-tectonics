@@ -42,6 +42,28 @@ class IPlate : public IMass, public IMovement
 public:
 };
 
+
+struct surroundingPoints
+{
+public:
+    float_t westCrust = 0.f, eastCrust= 0.f, northCrust= 0.f, southCrust= 0.f;
+    uint32_t westIndex = 0, eastIndex= 0,  northIndex= 0, southIndex= 0;
+    
+    surroundingPoints(){};
+    
+    bool oneIsHigher() const
+    {
+        return (westCrust +eastCrust+northCrust+eastCrust) == 0;
+    }
+    
+    bool onIsLower() const
+    {
+        return (westCrust *eastCrust*northCrust*eastCrust) == 0;
+    }
+
+};
+
+
 class plate : public IPlate
 {
 public:
@@ -74,7 +96,8 @@ public:
     /// @param  z   Amount of crust to add.
     /// @param  t   Time of creation of new crust.
     /// @param activeContinent Segment ID of the continent that's processed.
-    void addCrustByCollision(uint32_t x, uint32_t y, float z, uint32_t t, ContinentId activeContinent);
+    void addCrustByCollision(const Platec::vec2ui& point,const float_t z,
+                            const uint32_t time,const ContinentId activeContinent);
 
     /// Simulates subduction of oceanic plate under this plate.
     ///
@@ -252,9 +275,7 @@ public:
     }
 
     // visible for testing
-    void calculateCrust(uint32_t x, uint32_t y, uint32_t index,
-                        float& w_crust, float& e_crust, float& n_crust, float& s_crust,
-                        uint32_t& w, uint32_t& e, uint32_t& n, uint32_t& s);
+    const surroundingPoints calculateCrust(const Platec::vec2ui& position, const float_t height);
 
     // Visible for testing
     void injectSegments( std::shared_ptr<ISegments> segments)
@@ -265,7 +286,7 @@ private:
 
     ISegmentData& getContinentAt(const Platec::vec2ui& point);
     const ISegmentData& getContinentAt(const Platec::vec2ui& point) const;
-    void findRiverSources(float lower_bound, std::vector<uint32_t>* sources);
+    void findRiverSources(const float_t lower_bound, std::vector<uint32_t>& sources);
     void flowRivers(float lower_bound, std::vector<uint32_t>* sources, HeightMap& tmp);
     uint32_t createSegment(const Platec::vec2ui& point);
 

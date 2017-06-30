@@ -98,38 +98,37 @@ TEST(Plate, calculateCrust)
     HeightMap m = HeightMap(std::vector<float>(heightmap,heightmap+(256 * 128)),256, 128);
     plate p = plate(123, m, Dimension(100, 3),Platec::vec2f( 50, 23), 18, Dimension(256, 128));
     uint32_t x, y, index;
-    float w_crust, e_crust, n_crust, s_crust;
-    uint32_t w, e, n, s;
+
 
     // top left corner
     x = 0;
     y = 0;
     index = 1;
-    p.calculateCrust(x,y,index,w_crust,e_crust,n_crust,s_crust,w,e,n,s);
-    EXPECT_EQ(0, w);
-    EXPECT_EQ(1, e);
-    EXPECT_EQ(0, n);
-    EXPECT_EQ(100, s);
+    surroundingPoints neighbors = p.calculateCrust(Platec::vec2ui(x,y),heightmap[index]);
+    EXPECT_EQ(0,   neighbors.westIndex );
+    EXPECT_EQ(1,   neighbors.eastIndex );
+    EXPECT_EQ(0,   neighbors.northIndex);
+    EXPECT_EQ(100, neighbors.southIndex);
 
     // bottom right corner
     x = 99;
     y = 2;
     index = 1;
-    p.calculateCrust(x,y,index,w_crust,e_crust,n_crust,s_crust,w,e,n,s);
-    EXPECT_EQ(298, w);
-    EXPECT_EQ(200, e);
-    EXPECT_EQ(199, n);
-    EXPECT_EQ(99, s);
+    neighbors =  p.calculateCrust(Platec::vec2ui(x,y),heightmap[index]);
+    EXPECT_EQ(298, neighbors.westIndex );
+    EXPECT_EQ(200, neighbors.eastIndex );
+    EXPECT_EQ(199, neighbors.northIndex);
+    EXPECT_EQ(99,  neighbors.southIndex);
 
     // point in the middle
     x = 50;
     y = 1;
     index = 1;
-    p.calculateCrust(x,y,index,w_crust,e_crust,n_crust,s_crust,w,e,n,s);
-    EXPECT_EQ(149, w);
-    EXPECT_EQ(151, e);
-    EXPECT_EQ(50, n);
-    EXPECT_EQ(250, s);
+    neighbors =  p.calculateCrust(Platec::vec2ui(x,y),heightmap[index]);
+    EXPECT_EQ(149, neighbors.westIndex );
+    EXPECT_EQ(151, neighbors.eastIndex );
+    EXPECT_EQ(50,  neighbors.northIndex);
+    EXPECT_EQ(250, neighbors.southIndex);
 }
 
 class MockSegmentData : public ISegmentData
@@ -377,8 +376,7 @@ TEST(Plate, addCrustByCollision)
     // Assumptions:
     // the point is in the plate bounds
 
-    p.addCrustByCollision(
-        worldPointX, worldPointY, // Point of impact
+    p.addCrustByCollision(Platec::vec2ui(worldPointX, worldPointY), // Point of impact
         0.8f, // Amount of crust
         123, // Current age
         99); // Active continent
