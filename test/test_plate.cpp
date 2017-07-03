@@ -96,7 +96,8 @@ TEST(Plate, calculateCrust)
     initializeHeightmapWithNoise(678, heightmap, Dimension(256, 128));
     
     HeightMap m = HeightMap(std::vector<float>(heightmap,heightmap+(256 * 128)),256, 128);
-    plate p = plate(123, m, Dimension(100, 3),Platec::vec2f( 50, 23), 18, Dimension(256, 128));
+    Dimension dim = Dimension(100, 3);
+    plate p = plate(123, m, dim,Platec::vec2f( 50, 23), 18, Dimension(256, 128));
     uint32_t x, y, index;
 
 
@@ -104,7 +105,7 @@ TEST(Plate, calculateCrust)
     x = 0;
     y = 0;
     index = 1;
-    surroundingPoints neighbors = p.calculateCrust(Platec::vec2ui(x,y),heightmap[index]);
+    surroundingPoints neighbors = p.calculateCrust(dim.indexOf(Platec::vec2ui(x,y)));
     EXPECT_EQ(0,   neighbors.westIndex );
     EXPECT_EQ(1,   neighbors.eastIndex );
     EXPECT_EQ(0,   neighbors.northIndex);
@@ -114,7 +115,7 @@ TEST(Plate, calculateCrust)
     x = 99;
     y = 2;
     index = 1;
-    neighbors =  p.calculateCrust(Platec::vec2ui(x,y),heightmap[index]);
+    neighbors =  p.calculateCrust(dim.indexOf(Platec::vec2ui(x,y)));
     EXPECT_EQ(298, neighbors.westIndex );
     EXPECT_EQ(200, neighbors.eastIndex );
     EXPECT_EQ(199, neighbors.northIndex);
@@ -124,7 +125,7 @@ TEST(Plate, calculateCrust)
     x = 50;
     y = 1;
     index = 1;
-    neighbors =  p.calculateCrust(Platec::vec2ui(x,y),heightmap[index]);
+    neighbors =  p.calculateCrust(dim.indexOf(Platec::vec2ui(x,y)));
     EXPECT_EQ(149, neighbors.westIndex );
     EXPECT_EQ(151, neighbors.eastIndex );
     EXPECT_EQ(50,  neighbors.northIndex);

@@ -29,13 +29,11 @@
 #include <vector>
 #include <stdexcept> // std::invalid_argument
 #include <assert.h>
-#include <unistd.h>
 #include "plate.hpp"
 #include "heightmap.hpp"
 #include "utils.hpp"
 #include "plate_functions.hpp"
 
-using namespace std;
 
 plate::plate(const long seed,const HeightMap&  m, 
             const Dimension& plateDimension,
@@ -95,7 +93,7 @@ void plate::addCrustByCollision(const Platec::vec2ui& point,const float_t z,
 void plate::addCrustBySubduction(const Platec::vec2ui& originPoint,const float_t sediment,const uint32_t time,
                               const Platec::vec2f& dir)
 {
-    if(sediment <= 0) //should be checked earliers
+    if(sediment <= 0) //should be checked earlier
     {
         return;
     }
@@ -232,17 +230,24 @@ void plate::collide(plate& p,const float_t coll_mass)
     }
 }
 
-const surroundingPoints plate::calculateCrust(const Platec::vec2ui& position, const float_t height)
+const surroundingPoints plate::calculateCrust(const uint32_t index)
 {
+    const Platec::vec2ui& position = bounds->getDimension().coordOF(index);
+    const Platec::vec2ui& position_world = worldDimension.pointMod(position);
+    const float_t height = map.get(index);
     surroundingPoints ret;
-    // Build masks for accessible directions (4-way).
-    // Allow wrapping around map edges if plate has world wide dimensions.
-    const uint32_t world_height = worldDimension.getHeight();
-    bool height_bit = bounds->height() == world_height;
+
     
-    if(position.x() != 0)
+    if(position.x() > 0 || bounds->width()==worldDimension.getWidth() )
     {
-        ret.westIndex = bounds->index(position- Platec::vec2ui(1,0));
+        if(position_world.x() == 0)
+        {
+            ret.westIndex = bounds->index(Platec::vec2ui(worldDimension.getWidth() -1, position.y()));
+        }
+        else
+        {
+            ret.westIndex = bounds->index(position_world- Platec::vec2ui(1,0));
+        }
         if(map[ret.westIndex] < height)
         {
           ret.westCrust = map[ret.westIndex];
@@ -253,99 +258,91 @@ const surroundingPoints plate::calculateCrust(const Platec::vec2ui& position, co
         ret.westIndex = bounds->index(Platec::vec2ui(0,position.y()));
     }
     
-  
-    ret.eastIndex = bounds->index(bounds->getDimension().xMod(position +Platec::vec2ui(1,0))) ;
-    if(map[ret.eastIndex] < height)
+    if(position.x() < bounds->width()-1 || bounds->width()==worldDimension.getWidth() )
     {
-      ret.eastCrust = map[ret.eastIndex];
+        if(position_world.x()+1 == worldDimension.getWidth())
+        {
+            ret.eastIndex = bounds->index(Platec::vec2ui(0, position.y()));
+        }
+        else
+        {
+            ret.eastIndex = bounds->index(position_world+ Platec::vec2ui(1,0));
+        }        
+        if(map[ret.eastIndex] < height)
+        {
+          ret.eastCrust = map[ret.eastIndex];
+        }
+    }
+    else
+    {
+        ret.eastIndex = bounds->index(Platec::vec2ui(0,position.y()));
     }
 
-//    if(position.y() > 0| height_bit)
-//    {
-////        ret.northIndex = bounds->index(position - Platec::vec2ui(0,1));
-////        if(map[ret.northIndex] < height)
-////        {
-////          ret.northCrust = map[ret.northIndex];
-////        }
-//
-//        // Calculate the x and y offset of neighbour directions.
-//        // If neighbour is out of plate edges, set it to zero. This protects
-//        // map memory reads from segment faulting.
-//        const uint32_t y_mod = bounds->getDimension().yMod(position.y());
-//
-//        uint32_t y_mod_minus_1 = y_mod == 0 ? 0 : y_mod - 1;
-//        
-//        ret.northIndex = bounds->index(Platec::vec2ui(position.x(),y_mod_minus_1));
-//
-//        ret.northCrust = map[ret.northIndex] * ((map[ret.northIndex] < height));
-//    }
-//    else
-//    {
-//        ret.northCrust = bounds->index(Platec::vec2ui(position.x(),0));
-//    }
     
-    
-   ret.southIndex = bounds->index(bounds->getDimension().yMod(position +Platec::vec2ui(0,1))) ;
-    if(map[ret.southIndex] < height)
+    if(position.y() > 0 || bounds->height()==worldDimension.getHeight() )
     {
-      ret.southCrust = map[ret.southIndex];
+        if(position_world.y() == 0)
+        {
+            ret.northIndex = bounds->index(Platec::vec2ui( position.x(),worldDimension.getHeight() -1));
+        }
+        else
+        {
+            ret.northIndex = bounds->index(position_world- Platec::vec2ui(0,1));
+        } 
+        if(map[ret.northIndex] < height)
+        {
+          ret.northCrust = map[ret.northIndex];
+        }
+    }
+    else
+    {
+        ret.northCrust = bounds->index(Platec::vec2ui(position.x(),0));
     }    
     
-    uint32_t n_mask = -((position.y() > 0)   | height_bit       );
-
-    // Calculate the x and y offset of neighbour directions.
-    // If neighbour is out of plate edges, set it to zero. This protects
-    // map memory reads from segment faulting.
-    const uint32_t y_mod = bounds->getDimension().yMod(position.y());
-            
-    uint32_t y_mod_minus_1 = y_mod == 0 ? 0 : y_mod - 1;
-
-     uint32_t       n = n_mask==-1 ? y_mod_minus_1 : 0;
-    ret.northIndex = bounds->index(Platec::vec2ui(position.x(),n));
-
-    ret.northCrust = map[ret.northIndex] * (n_mask & (map[ret.northIndex] < height));
+    
+    if(position.y() < bounds->height()-1 || bounds->height()==worldDimension.getHeight() )
+    {
+        if(position_world.y()+1 == worldDimension.getHeight())
+        {
+            ret.southIndex = bounds->index(Platec::vec2ui(position.x(),0));
+        }
+        else
+        {
+            ret.southIndex = bounds->index(position_world+ Platec::vec2ui(0,1));
+        }           
+        if(map[ret.southIndex] < height)
+        {
+          ret.southCrust = map[ret.southIndex];
+        }
+    }
+    else
+    {
+        ret.southIndex = bounds->index(Platec::vec2ui(position.x(),0));
+    }
 
     return ret;
 }
 
-void plate::findRiverSources(const float_t lower_bound, vector<uint32_t>& sources)
+std::vector<uint32_t> plate::findRiverSources(const float_t lower_bound)
 {
-    const uint32_t bounds_height = bounds->height();
-    const uint32_t bounds_width = bounds->width();
-    
-
-    // Find all tops.
-    for (uint32_t y = 0; y < bounds_height; ++y) {
-      //  const uint32_t y_width = y * bounds_width;
-        for (uint32_t x = 0; x < bounds_width; ++x) {
-            const uint32_t index = bounds->index(Platec::vec2ui(x, y));
-
-            if (map[index] < lower_bound) {
-                continue;
-            }
-
-
-            // This location is either at the edge of the plate or it is not the
-            // tallest of its neightbours. Don't start a river from here.
-            if (calculateCrust(Platec::vec2ui(x, y),map[index]).onIsLower()) {
-                continue;
-            }
-
-            sources.push_back(index);
+    std::vector<uint32_t> sources = std::vector<uint32_t>(30);
+    uint32_t index = 0;
+    for(const auto& val : map.getData())
+    {
+        if(val >= lower_bound && !calculateCrust(index).onIsLower())
+        {
+            sources.emplace_back(index);
         }
+        ++index;
     }
+    return sources;
 }
 
-void plate::flowRivers(float lower_bound, vector<uint32_t>* sources, HeightMap& tmp)
+void plate::flowRivers(float lower_bound, std::vector<uint32_t>* sources, HeightMap& tmp)
 {
-    const uint32_t bounds_area = bounds->area();
-    vector<uint32_t> sinks_data;
+    std::vector<uint32_t> sinks_data;
 
-    static vector<bool> s_flowDone;
-    if (s_flowDone.size() < bounds_area) {
-        s_flowDone.resize(bounds_area);
-    }
-    fill(s_flowDone.begin(), s_flowDone.begin() + bounds_area, false);
+    std::vector<bool> s_flowDone = std::vector<bool>(bounds->area(),false);
 
     // From each top, start flowing water along the steepest slope.
     while (!sources->empty()) {
@@ -360,7 +357,7 @@ void plate::flowRivers(float lower_bound, vector<uint32_t>* sources, HeightMap& 
                 continue;
             }
 
-            surroundingPoints neighbors = calculateCrust(Platec::vec2ui(x, y), map[index]);
+            surroundingPoints neighbors = calculateCrust(index);
 
             // If this is the lowest part of its neighbourhood, stop.
             if (neighbors.oneIsHigher()) {
@@ -409,11 +406,11 @@ void plate::flowRivers(float lower_bound, vector<uint32_t>* sources, HeightMap& 
 
 void plate::erode(float lower_bound)
 {
-    vector<uint32_t> sources_data;
-    vector<uint32_t>* sources = &sources_data;
+    std::vector<uint32_t> sources_data = findRiverSources(lower_bound);
+    std::vector<uint32_t>* sources = &sources_data;
 
     HeightMap tmpHm(map);
-    findRiverSources(lower_bound, sources_data);
+
     flowRivers(lower_bound, sources, tmpHm);
 
     // Add random noise (10 %) to heightmap.
@@ -437,7 +434,7 @@ void plate::erode(float lower_bound)
             if (map[index] < lower_bound)
                 continue;
 
-            surroundingPoints neighbors = calculateCrust(Platec::vec2ui(x, y), map[index]);
+            surroundingPoints neighbors = calculateCrust(index);
             
             // This location has no neighbours (ARTIFACT!) or it is the lowest
             // part of its area. In either case the work here is done.

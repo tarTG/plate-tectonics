@@ -275,7 +275,7 @@ public:
     }
 
     // visible for testing
-    const surroundingPoints calculateCrust(const Platec::vec2ui& position, const float_t height);
+    const surroundingPoints calculateCrust(const uint32_t index);
 
     // Visible for testing
     void injectSegments( std::shared_ptr<ISegments> segments)
@@ -286,7 +286,7 @@ private:
 
     ISegmentData& getContinentAt(const Platec::vec2ui& point);
     const ISegmentData& getContinentAt(const Platec::vec2ui& point) const;
-    void findRiverSources(const float_t lower_bound, std::vector<uint32_t>& sources);
+    std::vector<uint32_t> findRiverSources(const float_t lower_bound);
     void flowRivers(float lower_bound, std::vector<uint32_t>* sources, HeightMap& tmp);
     uint32_t createSegment(const Platec::vec2ui& point);
 

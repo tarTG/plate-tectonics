@@ -156,8 +156,7 @@ private:
     {
     public:
         plateCollision(uint32_t _index, uint32_t x, uint32_t y, float z)
-        throw() : index(_index), wx(x), wy(y), crust(z) {
-            ASSERT(crust >= 0, "Crust must be a positive value");
+        : index(_index), wx(x), wy(y), crust(std::max(z,0.f)) {
         }
         uint32_t index; ///< Index of the other plate involved in the event.
         uint32_t wx, wy; ///< Coordinates of collision in world space.
