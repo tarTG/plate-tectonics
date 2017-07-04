@@ -56,7 +56,7 @@ plate::plate(const long seed,const HeightMap&  m,
     std::replace_if(age_map.getData().begin(),age_map.getData().end(),
                     [&](const auto& val)
                     {
-                        auto ret = *mapItr > 0;
+                        auto ret = *mapItr != 0;
                         ++mapItr;
                         return ret;
                     }, plate_age);
@@ -124,7 +124,7 @@ void plate::addCrustBySubduction(const Platec::vec2ui& originPoint,const float_t
         dotDir = dotDir - movement.velocityVector();
     }
     
-    //What the hell is he doin here. Why have we to calculete 10 * x +3 ????
+    //What the hell are we doing here? Why have we to calculete 10 * x +3 ????
     auto offset =std::pow((float_t)randsource.next_double(),3);
      offset = std::copysign(offset,  2 * (int)(randsource.next() % 2) - 1); 
     
@@ -237,7 +237,7 @@ const surroundingPoints plate::calculateCrust(const uint32_t index)
     const float_t height = map.get(index);
     surroundingPoints ret;
 
-    
+    ret.centerIndex = index;
     if(position.x() > 0 || bounds->width()==worldDimension.getWidth() )
     {
         if(position_world.x() == 0)
@@ -323,104 +323,57 @@ const surroundingPoints plate::calculateCrust(const uint32_t index)
     return ret;
 }
 
-std::vector<uint32_t> plate::findRiverSources(const float_t lower_bound)
+std::vector<surroundingPoints> plate::findRiverSources(const float_t lower_bound)
 {
-    std::vector<uint32_t> sources = std::vector<uint32_t>(30);
+    std::vector<surroundingPoints> sources = std::vector<surroundingPoints>(30);
     uint32_t index = 0;
+    surroundingPoints tmp;
     for(const auto& val : map.getData())
     {
-        if(val >= lower_bound && !calculateCrust(index).onIsLower())
+        tmp = calculateCrust(index);
+        if(val >= lower_bound && !tmp.oneIsLower())
         {
-            sources.emplace_back(index);
+            sources.emplace_back(tmp);
         }
         ++index;
     }
     return sources;
 }
 
-void plate::flowRivers(float lower_bound, std::vector<uint32_t>* sources, HeightMap& tmp)
+std::vector<uint32_t> plate::flowRivers(std::vector<surroundingPoints> sources)
 {
-    std::vector<uint32_t> sinks_data;
-
-    std::vector<bool> s_flowDone = std::vector<bool>(bounds->area(),false);
-
-    // From each top, start flowing water along the steepest slope.
-    while (!sources->empty()) {
-        while (!sources->empty()) {
-            const uint32_t index = sources->back();
-            const uint32_t y = index / bounds->width();
-            const uint32_t x = index - y * bounds->width();
-
-            sources->pop_back();
-
-            if (map[index] < lower_bound) {
-                continue;
+    std::vector<uint32_t> foundIndices;
+    
+    for(auto& val : sources) //get all sources
+    {
+        if(!val.centerIsLowest() ) // if center is not the lowest
+        {
+            sources.push_back(calculateCrust(val.getLowestIndex())); //add lowest neighbor as source
+            if(std::find(foundIndices.begin(), foundIndices.end(), val.centerIndex) != foundIndices.end())
+            {
+                foundIndices.push_back(val.centerIndex);
             }
-
-            surroundingPoints neighbors = calculateCrust(index);
-
-            // If this is the lowest part of its neighbourhood, stop.
-            if (neighbors.oneIsHigher()) {
-                continue;
-            }
-
-            neighbors.westCrust += (neighbors.westCrust == 0) * map[index];
-            neighbors.eastCrust += (neighbors.eastCrust == 0) * map[index];
-            neighbors.northCrust += (neighbors.northCrust == 0) * map[index];
-            neighbors.southCrust += (neighbors.southCrust == 0) * map[index];
-
-            // Find lowest neighbour.
-            float lowest_crust = neighbors.westCrust;
-            uint32_t dest = index - 1;
-
-            if (neighbors.eastCrust < lowest_crust) {
-                lowest_crust = neighbors.eastCrust;
-                dest = index + 1;
-            }
-
-            if (neighbors.northCrust < lowest_crust) {
-                lowest_crust = neighbors.northCrust;
-                dest = index - bounds->width();
-            }
-
-            if (neighbors.southCrust < lowest_crust) {
-                lowest_crust = neighbors.southCrust;
-                dest = index + bounds->width();
-            }
-
-            // if it's not handled yet, add it as new sink.
-            if (dest < bounds->area() && !s_flowDone[dest]) {
-                sinks_data.push_back(dest);
-                s_flowDone[dest] = true;
-            }
-
-            // Erode this location with the water flow.
-            tmp[index] -= (tmp[index] - lower_bound) * 0.2;
         }
-
-
-        sources->swap(sinks_data);
-        sinks_data.clear();
     }
+    return foundIndices;
 }
 
 void plate::erode(float lower_bound)
 {
-    std::vector<uint32_t> sources_data = findRiverSources(lower_bound);
-    std::vector<uint32_t>* sources = &sources_data;
-
-    HeightMap tmpHm(map);
-
-    flowRivers(lower_bound, sources, tmpHm);
-
-    // Add random noise (10 %) to heightmap.
-    for (uint32_t i = 0; i < bounds->area(); ++i) {
-        float alpha = 0.2 * (float)randsource.next_double();
-        tmpHm[i] += 0.1 * tmpHm[i] - alpha * tmpHm[i];
+    HeightMap tmpHm(map.getDimension());
+    
+    for(const auto& index : flowRivers(findRiverSources(lower_bound)))
+    {
+        map[index] -= (map[index] - lower_bound) * 0.2;
     }
 
-    map = tmpHm;
-    tmpHm.set_all(0.0f);
+    // Add random noise (10 %) to heightmap.
+    for(auto& val : map.getData())
+    {
+        val += 0.1 * val - (0.2 * (float)randsource.next_double() * val);
+    }
+
+
     MassBuilder massBuilder;
 
     for (uint32_t y = 0; y < bounds->height(); ++y)
@@ -428,7 +381,7 @@ void plate::erode(float lower_bound)
         for (uint32_t x = 0; x < bounds->width(); ++x)
         {
             const uint32_t index = y * bounds->width() + x;
-            massBuilder.addPoint(Platec::Vector2D<uint32_t>(x, y), map[index]);
+            massBuilder.addPoint(Platec::vec2ui(x, y), map[index]);
             tmpHm[index] += map[index]; // Careful not to overwrite earlier amounts.
 
             if (map[index] < lower_bound)
@@ -438,7 +391,7 @@ void plate::erode(float lower_bound)
             
             // This location has no neighbours (ARTIFACT!) or it is the lowest
             // part of its area. In either case the work here is done.
-            if (neighbors.oneIsHigher())
+            if (neighbors.centerIsLowest())
                 continue;
 
             // The steeper the slope, the more water flows along it.
@@ -555,15 +508,16 @@ uint32_t plate::getCrustTimestamp(const Platec::vec2ui& point) const
     return index.first != BAD_INDEX ? age_map[index.first] : 0;
 }
 
-void plate::getMap(const float** c, const uint32_t** t) const
-{
-    if (c) {
-        *c = map.raw_data();
-    }
-    if (t) {
-        *t = age_map.raw_data();
-    }
+
+
+AgeMap& plate::getAgeMap() {
+    return age_map;
 }
+
+HeightMap& plate::getHeigthMap() {
+    return map;
+}
+
 
 void plate::move(const Dimension& worldDimension)
 {
@@ -641,12 +595,9 @@ void plate::setCrust(const Platec::vec2ui& point, float_t z, uint32_t t)
         bounds->shift(Platec::vec2f(-1.0*d_lft, -1.0*d_top));
         bounds->grow(Platec::vec2ui(d_lft + d_rgt, d_top + d_btm));
 
-        HeightMap tmph = HeightMap(bounds->width(), bounds->height());
-        AgeMap    tmpa = AgeMap(bounds->width(), bounds->height());
-        uint32_t* tmps = new uint32_t[bounds->area()];
-        tmph.set_all(0);
-        tmpa.set_all(0);
-        memset(tmps, 255, bounds->area()*sizeof(uint32_t));
+        HeightMap tmph = HeightMap(bounds->getDimension());
+        AgeMap    tmpa = AgeMap(bounds->getDimension());
+        std::vector<uint32_t> tmps = std::vector<u_int32_t>(bounds->area(),255);
 
         // copy old plate into new.
         for (uint32_t j = 0; j < old_height; ++j)
@@ -663,7 +614,7 @@ void plate::setCrust(const Platec::vec2ui& point, float_t z, uint32_t t)
 
         map     = tmph;
         age_map = tmpa;
-        segments->reassign(bounds->area(),std::vector<uint32_t>(tmps, tmps +bounds->area()));
+        segments->reassign(bounds->area(),tmps);
 
         // Shift all segment data to match new coordinates.
         segments->shift(Platec::vec2ui(d_lft, d_top));
@@ -676,12 +627,18 @@ void plate::setCrust(const Platec::vec2ui& point, float_t z, uint32_t t)
 
     // Update crust's age.
     // If old crust exists, new age is mean of original and supplied ages.
-    // If no new crust is added, original time remains intact.
-    const uint32_t old_crust = -(map[index.first] > 0);
-    const uint32_t new_crust = -(z > 0);
-    t = (t & ~old_crust) | ((uint32_t)((map[index.first] * age_map[index.first] + z * t) /
-                                       (map[index.first] + z)) & old_crust);
-    age_map[index.first] = (t & new_crust) | (age_map[index.first] & ~new_crust);
+    // If no new crust is added, original time remains intact.    
+    if(z > 0)
+    {
+        if(map[index.first] != 0)
+        {
+            t = (uint32_t)((map[index.first] * age_map[index.first] + z * t) /
+                                       (map[index.first] + z));
+        }
+        age_map[index.first] = t ;
+    }
+    
+
 
     mass.incMass(-1.0f * map[index.first]);
     mass.incMass(z);      // Update mass counter.

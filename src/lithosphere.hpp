@@ -135,7 +135,7 @@ private:
     void removeEmptyPlates();
     void resolveJuxtapositions(const uint32_t& i, const uint32_t& j, const uint32_t& k,
                                const uint32_t& x_mod, const uint32_t& y_mod,
-                               const float*& this_map, const uint32_t*& this_age, uint32_t& continental_collisions);
+                               const HeightMap& this_map, const AgeMap& this_age, uint32_t& continental_collisions);
 
     /**
      * Container for collision details between two plates.

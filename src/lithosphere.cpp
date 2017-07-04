@@ -349,7 +349,7 @@ bool lithosphere::isFinished() const
 // Move some crust from the SMALLER plate onto LARGER one.
 void lithosphere::resolveJuxtapositions(const uint32_t& i, const uint32_t& j, const uint32_t& k,
                                         const uint32_t& x_mod, const uint32_t& y_mod,
-                                        const float*& this_map, const uint32_t*& this_age, uint32_t& continental_collisions)
+                                        const HeightMap& this_map, const AgeMap& this_age, uint32_t& continental_collisions)
 {
     ASSERT(i<num_plates, "Given invalid plate index");
 
@@ -417,10 +417,9 @@ void lithosphere::updateHeightAndPlateIndexMaps(const uint32_t& map_area,
         const uint32_t x1 = x0 + plates[i]->getWidth();
         const uint32_t y1 = y0 + plates[i]->getHeight();
 
-        const float*  this_map;
-        const uint32_t* this_age;
-        plates[i]->getMap(&this_map, &this_age);
-
+        const HeightMap& this_map = plates[i]->getHeigthMap();
+        const AgeMap& this_age = plates[i]->getAgeMap();
+        
         uint32_t x_mod_start = (x0 + world_width) % world_width;
         uint32_t y_mod = (y0 + world_height) % world_height;
 
@@ -662,6 +661,7 @@ void lithosphere::update()
                 // Do not apply friction to oceanic plates.
                 // This is a very cheap way to emulate slab pull.
                 // Just perform subduction and on our way we go!
+                
                 plates[i]->addCrustBySubduction(
                     Platec::vec2ui(coll.wx, coll.wy), coll.crust, iter_count,
                   plates[coll.index]->getVelocityVector());
@@ -748,9 +748,8 @@ void lithosphere::restart()
             const uint32_t x1 = x0 + plates[i]->getWidth();
             const uint32_t y1 = y0 + plates[i]->getHeight();
 
-            const float*  this_map;
-            const uint32_t* this_age;
-            plates[i]->getMap(&this_map, &this_age);
+            const HeightMap& this_map = plates[i]->getHeigthMap();
+            const AgeMap& this_age = plates[i]->getAgeMap();
 
             // Copy first part of plate onto world map.
             for (uint32_t y = y0, j = 0; y < y1; ++y)
@@ -788,12 +787,8 @@ void lithosphere::restart()
                 const uint32_t x1 = x0 + plates[i]->getWidth();
                 const uint32_t y1 = y0 + plates[i]->getHeight();
 
-                const float*  this_map;
-                const uint32_t* this_age_const;
-                uint32_t* this_age;
-
-                plates[i]->getMap(&this_map, &this_age_const);
-                this_age = (uint32_t *)this_age_const;
+                const HeightMap& this_map = plates[i]->getHeigthMap();
+                AgeMap& this_age = plates[i]->getAgeMap();
 
                 for (uint32_t y = y0, j = 0; y < y1; ++y)
                 {

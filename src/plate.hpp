@@ -47,18 +47,51 @@ struct surroundingPoints
 {
 public:
     float_t westCrust = 0.f, eastCrust= 0.f, northCrust= 0.f, southCrust= 0.f;
-    uint32_t westIndex = 0, eastIndex= 0,  northIndex= 0, southIndex= 0;
+    uint32_t westIndex = 0, eastIndex= 0,  northIndex= 0, southIndex= 0, centerIndex=0;
     
     surroundingPoints(){};
     
-    bool oneIsHigher() const
+    bool centerIsLowest() const
     {
         return (westCrust +eastCrust+northCrust+eastCrust) == 0;
     }
     
-    bool onIsLower() const
+    bool oneIsLower() const
     {
         return (westCrust *eastCrust*northCrust*eastCrust) == 0;
+    }
+    
+    uint32_t getLowestIndex()
+    {
+        if(centerIsLowest())
+        {
+            return centerIndex;
+        }
+        float lowest_crust = centerIndex;
+        uint32_t dest;
+        
+       if (westCrust < lowest_crust && westCrust != 0) {
+            lowest_crust = westCrust;
+            dest = westIndex;
+        }
+
+        if (eastCrust < lowest_crust && eastCrust != 0) {
+            lowest_crust = eastCrust;
+            dest = eastIndex;
+        }
+
+        if (northCrust < lowest_crust && northCrust != 0) {
+            lowest_crust = northCrust;
+            dest = northIndex;
+        }
+
+        if (southCrust < lowest_crust && southCrust != 0) {
+            lowest_crust = southCrust;
+            dest = southIndex;
+        }
+        
+        return dest;
+
     }
 
 };
@@ -193,11 +226,10 @@ public:
     ///                     Zero is returned if location contains no crust.
     uint32_t getCrustTimestamp(const Platec::vec2ui& point) const;
 
-    /// Get pointers to plate's data.
-    ///
-    /// @param  c   Adress of crust height map is stored here.
-    /// @param  t   Adress of crust timestamp map is stored here.
-    void getMap(const float** c, const uint32_t** t) const;
+   
+    AgeMap& getAgeMap();
+    
+    HeightMap& getHeigthMap();
 
     void move(const Dimension& worldDimension); ///< Moves plate along it's trajectory.
 
@@ -286,8 +318,8 @@ private:
 
     ISegmentData& getContinentAt(const Platec::vec2ui& point);
     const ISegmentData& getContinentAt(const Platec::vec2ui& point) const;
-    std::vector<uint32_t> findRiverSources(const float_t lower_bound);
-    void flowRivers(float lower_bound, std::vector<uint32_t>* sources, HeightMap& tmp);
+    std::vector<surroundingPoints> findRiverSources(const float_t lower_bound);
+    std::vector<uint32_t> flowRivers(std::vector<surroundingPoints> sources);
     uint32_t createSegment(const Platec::vec2ui& point);
 
     const Dimension worldDimension;

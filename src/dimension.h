@@ -87,6 +87,7 @@ public:
         }
         return Platec::Vector2D<T> (xval,yval);
     }
+    Platec::vec2ui getDimensions() const;
 
 };
 
