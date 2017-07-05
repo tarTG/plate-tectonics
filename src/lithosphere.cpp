@@ -564,7 +564,7 @@ void lithosphere::updateCollisions()
             {
                 float amount = plates[i]->aggregateCrust(
                                    plates[coll.index],
-                                   coll.wx, coll.wy);
+                                   Platec::vec2ui(coll.wx, coll.wy));
 
                 // Calculate new direction and speed for the
                 // merged plate system, that is, for the

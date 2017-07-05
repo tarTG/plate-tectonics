@@ -152,10 +152,10 @@ void plate::addCrustBySubduction(const Platec::vec2ui& originPoint,const float_t
     }
 }
 
-float plate::aggregateCrust(plate* p, uint32_t wx, uint32_t wy)
+float plate::aggregateCrust(plate* p, Platec::vec2ui point)
 {
 
-    const auto index = bounds->getValidMapIndex(Platec::vec2ui(wx,wy));
+    const auto index = bounds->getValidMapIndex(point);
 
     const ContinentId seg_id = segments->id(index.first);
 
@@ -179,11 +179,10 @@ float plate::aggregateCrust(plate* p, uint32_t wx, uint32_t wy)
         return 0;   // Do not process empty continents.
     }
 
-    ContinentId activeContinent = p->selectCollisionSegment(Platec::vec2ui(wx, wy));
+    ContinentId activeContinent = p->selectCollisionSegment(point);
 
     // Wrap coordinates around world edges to safeguard subtractions.
-    wx += worldDimension.getWidth();
-    wy += worldDimension.getHeight();
+    point = point + worldDimension.getDimensions();
 
     // Aggregating segment [%u, %u]x[%u, %u] vs. [%u, %u]@[%u, %u]\n",
     //      seg_data[seg_id].x0, seg_data[seg_id].y0,
@@ -200,7 +199,7 @@ float plate::aggregateCrust(plate* p, uint32_t wx, uint32_t wy)
             const uint32_t i = y * bounds->width() + x;
             if ((segments->id(i) == seg_id) && (map[i] > 0))
             {
-                p->addCrustByCollision(Platec::vec2ui(wx + x - index.second.x(), wy + y - index.second.y()),
+                p->addCrustByCollision(point + Platec::vec2ui(x,y)- index.second,
                                        map[i], age_map[i], activeContinent);
 
                 mass.incMass(-1.0f * map[i]);
@@ -230,7 +229,7 @@ void plate::collide(plate& p,const float_t coll_mass)
     }
 }
 
-const surroundingPoints plate::calculateCrust(const uint32_t index)
+const surroundingPoints plate::calculateCrust(const uint32_t index) const
 {
     const Platec::vec2ui& position = bounds->getDimension().coordOF(index);
     const Platec::vec2ui& position_world = worldDimension.pointMod(position);
@@ -246,7 +245,7 @@ const surroundingPoints plate::calculateCrust(const uint32_t index)
         }
         else
         {
-            ret.westIndex = bounds->index(position_world- Platec::vec2ui(1,0));
+            ret.westIndex = bounds->index(Platec::vec2ui(position_world.x()- 1,position.y()));
         }
         if(map[ret.westIndex] < height)
         {
@@ -256,7 +255,7 @@ const surroundingPoints plate::calculateCrust(const uint32_t index)
     else
     {
         ret.westIndex = bounds->index(Platec::vec2ui(0,position.y()));
-    }
+    } 
     
     if(position.x() < bounds->width()-1 || bounds->width()==worldDimension.getWidth() )
     {
@@ -266,7 +265,7 @@ const surroundingPoints plate::calculateCrust(const uint32_t index)
         }
         else
         {
-            ret.eastIndex = bounds->index(position_world+ Platec::vec2ui(1,0));
+            ret.eastIndex = bounds->index(Platec::vec2ui(position_world.x()+ 1,position.y()));
         }        
         if(map[ret.eastIndex] < height)
         {
@@ -287,7 +286,7 @@ const surroundingPoints plate::calculateCrust(const uint32_t index)
         }
         else
         {
-            ret.northIndex = bounds->index(position_world- Platec::vec2ui(0,1));
+            ret.northIndex = bounds->index(Platec::vec2ui( position.x(),position_world.y() -1));
         } 
         if(map[ret.northIndex] < height)
         {
@@ -296,10 +295,9 @@ const surroundingPoints plate::calculateCrust(const uint32_t index)
     }
     else
     {
-        ret.northCrust = bounds->index(Platec::vec2ui(position.x(),0));
-    }    
-    
-    
+        ret.northIndex = bounds->index(Platec::vec2ui(position.x(),0));
+    } 
+      
     if(position.y() < bounds->height()-1 || bounds->height()==worldDimension.getHeight() )
     {
         if(position_world.y()+1 == worldDimension.getHeight())
@@ -308,7 +306,7 @@ const surroundingPoints plate::calculateCrust(const uint32_t index)
         }
         else
         {
-            ret.southIndex = bounds->index(position_world+ Platec::vec2ui(0,1));
+            ret.southIndex = bounds->index(Platec::vec2ui( position.x(),position_world.y() +1));
         }           
         if(map[ret.southIndex] < height)
         {
@@ -340,29 +338,36 @@ std::vector<surroundingPoints> plate::findRiverSources(const float_t lower_bound
     return sources;
 }
 
-std::vector<uint32_t> plate::flowRivers(std::vector<surroundingPoints> sources)
+std::vector<uint32_t> plate::flowRivers( std::vector<surroundingPoints> sources, std::vector<uint32_t> foundIndices)
 {
-    std::vector<uint32_t> foundIndices;
+    std::vector<surroundingPoints> newSources;
+    if(sources.empty())
+    {
+        return foundIndices;
+    }
     
     for(auto& val : sources) //get all sources
     {
-        if(!val.centerIsLowest() ) // if center is not the lowest
+        if(!val.centerIsLowest()) // if center is not the lowest
         {
-            sources.push_back(calculateCrust(val.getLowestIndex())); //add lowest neighbor as source
-            if(std::find(foundIndices.begin(), foundIndices.end(), val.centerIndex) != foundIndices.end())
-            {
-                foundIndices.push_back(val.centerIndex);
-            }
+            newSources.push_back(calculateCrust(val.getLowestIndex())); //add lowest neighbor as source
+            foundIndices.emplace_back(val.centerIndex);
+
         }
     }
-    return foundIndices;
+
+    return flowRivers(newSources,foundIndices);
 }
 
 void plate::erode(float lower_bound)
 {
-    HeightMap tmpHm(map.getDimension());
+    HeightMap tmpHm(bounds->getDimension());
     
-    for(const auto& index : flowRivers(findRiverSources(lower_bound)))
+    auto sinks = flowRivers(findRiverSources(lower_bound));
+   //remove duplicates
+    std::sort( sinks.begin(), sinks.end() );
+    sinks.erase( std::unique( sinks.begin(), sinks.end() ), sinks.end() );
+    for(const auto& index : sinks)
     {
         map[index] -= (map[index] - lower_bound) * 0.2;
     }
@@ -376,100 +381,96 @@ void plate::erode(float lower_bound)
 
     MassBuilder massBuilder;
 
-    for (uint32_t y = 0; y < bounds->height(); ++y)
+    for (uint32_t index = 0; index < bounds->area(); ++index)
     {
-        for (uint32_t x = 0; x < bounds->width(); ++x)
+        massBuilder.addPoint(bounds->getDimension().coordOF(index), map[index]);
+        tmpHm[index] += map[index]; // Careful not to overwrite earlier amounts.
+
+        if (map[index] < lower_bound)
+            continue;
+
+        surroundingPoints neighbors = calculateCrust(index);
+
+        // This location has no neighbours (ARTIFACT!) or it is the lowest
+        // part of its area. In either case the work here is done.
+        if (neighbors.centerIsLowest())
+            continue;
+
+        // The steeper the slope, the more water flows along it.
+        // The more downhill (sources), the more water flows to here.
+        // 1+1+10 = 12, avg = 4, stdev = sqrt((3*3+3*3+6*6)/3) = 4.2, var = 18,
+        //  1*1+1*1+10*10 = 102, 102/4.2=24
+        // 1+4+7 = 12, avg = 4, stdev = sqrt((3*3+0*0+3*3)/3) = 2.4, var = 6,
+        //  1*1+4*4+7*7 = 66, 66/2.4 = 27
+        // 4+4+4 = 12, avg = 4, stdev = sqrt((0*0+0*0+0*0)/3) = 0, var = 0,
+        //  4*4+4*4+4*4 = 48, 48/0 = inf -> 48
+        // If there's a source slope of height X then it will always cause
+        // water erosion of amount Y. Then again from one spot only so much
+        // water can flow.
+        // Thus, the calculated non-linear flow value for this location is
+        // multiplied by the "water erosion" constant.
+        // The result is max(result, 1.0). New height of this location could
+        // be e.g. h_lowest + (1 - 1 / result) * (h_0 - h_lowest).
+
+        // Calculate the difference in height between this point and its
+        // nbours that are lower than this point.
+        float w_diff = map[index] - neighbors.westCrust;
+        float e_diff = map[index] - neighbors.eastCrust;
+        float n_diff = map[index] - neighbors.northCrust;
+        float s_diff = map[index] - neighbors.southCrust;
+
+        float min_diff = w_diff;
+        min_diff -= (min_diff - e_diff) * (e_diff < min_diff);
+        min_diff -= (min_diff - n_diff) * (n_diff < min_diff);
+        min_diff -= (min_diff - s_diff) * (s_diff < min_diff);
+
+        // Calculate the sum of difference between lower neighbours and
+        // the TALLEST lower neighbour.
+        float diff_sum = (w_diff - min_diff) * (neighbors.westCrust > 0) +
+                         (e_diff - min_diff) * (neighbors.eastCrust > 0) +
+                         (n_diff - min_diff) * (neighbors.northCrust > 0) +
+                         (s_diff - min_diff) * (neighbors.southCrust > 0);
+
+        // Erosion difference sum is negative!
+        ASSERT(diff_sum >= 0, "Difference sum must be positive");
+
+        if (diff_sum < min_diff)
         {
-            const uint32_t index = y * bounds->width() + x;
-            massBuilder.addPoint(Platec::vec2ui(x, y), map[index]);
-            tmpHm[index] += map[index]; // Careful not to overwrite earlier amounts.
+            // There's NOT enough room in neighbours to contain all the
+            // crust from this peak so that it would be as tall as its
+            // tallest lower neighbour. Thus first step is make ALL
+            // lower neighbours and this point equally tall.
+            tmpHm[neighbors.westIndex ] += (w_diff - min_diff) * (neighbors.westCrust > 0);
+            tmpHm[neighbors.eastIndex ] += (e_diff - min_diff) * (neighbors.eastCrust > 0);
+            tmpHm[neighbors.northIndex] += (n_diff - min_diff) * (neighbors.northCrust > 0);
+            tmpHm[neighbors.southIndex] += (s_diff - min_diff) * (neighbors.southCrust > 0);
+            tmpHm[index] -= min_diff;
 
-            if (map[index] < lower_bound)
-                continue;
+            min_diff -= diff_sum;
 
-            surroundingPoints neighbors = calculateCrust(index);
-            
-            // This location has no neighbours (ARTIFACT!) or it is the lowest
-            // part of its area. In either case the work here is done.
-            if (neighbors.centerIsLowest())
-                continue;
+            // Spread the remaining crust equally among all lower nbours.
+            min_diff /= 1 + (neighbors.westCrust > 0) + (neighbors.eastCrust > 0) +
+                        (neighbors.northCrust > 0) + (neighbors.southCrust > 0);
 
-            // The steeper the slope, the more water flows along it.
-            // The more downhill (sources), the more water flows to here.
-            // 1+1+10 = 12, avg = 4, stdev = sqrt((3*3+3*3+6*6)/3) = 4.2, var = 18,
-            //  1*1+1*1+10*10 = 102, 102/4.2=24
-            // 1+4+7 = 12, avg = 4, stdev = sqrt((3*3+0*0+3*3)/3) = 2.4, var = 6,
-            //  1*1+4*4+7*7 = 66, 66/2.4 = 27
-            // 4+4+4 = 12, avg = 4, stdev = sqrt((0*0+0*0+0*0)/3) = 0, var = 0,
-            //  4*4+4*4+4*4 = 48, 48/0 = inf -> 48
-            // If there's a source slope of height X then it will always cause
-            // water erosion of amount Y. Then again from one spot only so much
-            // water can flow.
-            // Thus, the calculated non-linear flow value for this location is
-            // multiplied by the "water erosion" constant.
-            // The result is max(result, 1.0). New height of this location could
-            // be e.g. h_lowest + (1 - 1 / result) * (h_0 - h_lowest).
+            tmpHm[neighbors.westIndex ] += min_diff * (neighbors.westCrust > 0);
+            tmpHm[neighbors.eastIndex ] += min_diff * (neighbors.eastCrust > 0);
+            tmpHm[neighbors.northIndex] += min_diff * (neighbors.northCrust > 0);
+            tmpHm[neighbors.southIndex] += min_diff * (neighbors.southCrust > 0);
+            tmpHm[index] += min_diff;
+        }
+        else
+        {
+            float unit = min_diff / diff_sum;
 
-            // Calculate the difference in height between this point and its
-            // nbours that are lower than this point.
-            float w_diff = map[index] - neighbors.westCrust;
-            float e_diff = map[index] - neighbors.eastCrust;
-            float n_diff = map[index] - neighbors.northCrust;
-            float s_diff = map[index] - neighbors.southCrust;
+            // Remove all crust from this location making it as tall as
+            // its tallest lower neighbour.
+            tmpHm[index] -= min_diff;
 
-            float min_diff = w_diff;
-            min_diff -= (min_diff - e_diff) * (e_diff < min_diff);
-            min_diff -= (min_diff - n_diff) * (n_diff < min_diff);
-            min_diff -= (min_diff - s_diff) * (s_diff < min_diff);
-
-            // Calculate the sum of difference between lower neighbours and
-            // the TALLEST lower neighbour.
-            float diff_sum = (w_diff - min_diff) * (neighbors.westCrust > 0) +
-                             (e_diff - min_diff) * (neighbors.eastCrust > 0) +
-                             (n_diff - min_diff) * (neighbors.northCrust > 0) +
-                             (s_diff - min_diff) * (neighbors.southCrust > 0);
-
-            // Erosion difference sum is negative!
-            ASSERT(diff_sum >= 0, "Difference sum must be positive");
-
-            if (diff_sum < min_diff)
-            {
-                // There's NOT enough room in neighbours to contain all the
-                // crust from this peak so that it would be as tall as its
-                // tallest lower neighbour. Thus first step is make ALL
-                // lower neighbours and this point equally tall.
-                tmpHm[neighbors.westIndex ] += (w_diff - min_diff) * (neighbors.westCrust > 0);
-                tmpHm[neighbors.eastIndex ] += (e_diff - min_diff) * (neighbors.eastCrust > 0);
-                tmpHm[neighbors.northIndex] += (n_diff - min_diff) * (neighbors.northCrust > 0);
-                tmpHm[neighbors.southIndex] += (s_diff - min_diff) * (neighbors.southCrust > 0);
-                tmpHm[index] -= min_diff;
-
-                min_diff -= diff_sum;
-
-                // Spread the remaining crust equally among all lower nbours.
-                min_diff /= 1 + (neighbors.westCrust > 0) + (neighbors.eastCrust > 0) +
-                            (neighbors.northCrust > 0) + (neighbors.southCrust > 0);
-
-                tmpHm[neighbors.westIndex ] += min_diff * (neighbors.westCrust > 0);
-                tmpHm[neighbors.eastIndex ] += min_diff * (neighbors.eastCrust > 0);
-                tmpHm[neighbors.northIndex] += min_diff * (neighbors.northCrust > 0);
-                tmpHm[neighbors.southIndex] += min_diff * (neighbors.southCrust > 0);
-                tmpHm[index] += min_diff;
-            }
-            else
-            {
-                float unit = min_diff / diff_sum;
-
-                // Remove all crust from this location making it as tall as
-                // its tallest lower neighbour.
-                tmpHm[index] -= min_diff;
-
-                // Spread all removed crust among all other lower neighbours.
-                tmpHm[neighbors.westIndex ] += unit * (w_diff - min_diff) * (neighbors.westCrust > 0);
-                tmpHm[neighbors.eastIndex ] += unit * (e_diff - min_diff) * (neighbors.eastCrust > 0);
-                tmpHm[neighbors.northIndex] += unit * (n_diff - min_diff) * (neighbors.northCrust > 0);
-                tmpHm[neighbors.southIndex] += unit * (s_diff - min_diff) * (neighbors.southCrust > 0);
-            }
+            // Spread all removed crust among all other lower neighbours.
+            tmpHm[neighbors.westIndex ] += unit * (w_diff - min_diff) * (neighbors.westCrust > 0);
+            tmpHm[neighbors.eastIndex ] += unit * (e_diff - min_diff) * (neighbors.eastCrust > 0);
+            tmpHm[neighbors.northIndex] += unit * (n_diff - min_diff) * (neighbors.northCrust > 0);
+            tmpHm[neighbors.southIndex] += unit * (s_diff - min_diff) * (neighbors.southCrust > 0);
         }
     }
     map = tmpHm;

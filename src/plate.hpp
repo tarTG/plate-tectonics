@@ -67,25 +67,25 @@ public:
         {
             return centerIndex;
         }
-        float lowest_crust = centerIndex;
+        float lowest_crust = std::numeric_limits<float_t>::max();
         uint32_t dest;
         
-       if (westCrust < lowest_crust && westCrust != 0) {
+       if (westCrust < lowest_crust && westCrust != 0.f) {
             lowest_crust = westCrust;
             dest = westIndex;
         }
 
-        if (eastCrust < lowest_crust && eastCrust != 0) {
+        if (eastCrust < lowest_crust && eastCrust != 0.f) {
             lowest_crust = eastCrust;
             dest = eastIndex;
         }
 
-        if (northCrust < lowest_crust && northCrust != 0) {
+        if (northCrust < lowest_crust && northCrust != 0.f) {
             lowest_crust = northCrust;
             dest = northIndex;
         }
 
-        if (southCrust < lowest_crust && southCrust != 0) {
+        if (southCrust < lowest_crust && southCrust != 0.f) {
             lowest_crust = southCrust;
             dest = southIndex;
         }
@@ -163,7 +163,7 @@ public:
     /// @param  wx  X coordinate of collision point on world map.
     /// @param  wy  Y coordinate of collision point on world map.
     /// @return Amount of crust aggregated to destination plate.
-    float aggregateCrust(plate* p, uint32_t wx, uint32_t wy);
+    float aggregateCrust(plate* p, Platec::vec2ui point);
 
     /// Decrease the speed of plate amount relative to its total mass.
     ///
@@ -307,7 +307,7 @@ public:
     }
 
     // visible for testing
-    const surroundingPoints calculateCrust(const uint32_t index);
+    const surroundingPoints calculateCrust(const uint32_t index) const;
 
     // Visible for testing
     void injectSegments( std::shared_ptr<ISegments> segments)
@@ -319,7 +319,7 @@ private:
     ISegmentData& getContinentAt(const Platec::vec2ui& point);
     const ISegmentData& getContinentAt(const Platec::vec2ui& point) const;
     std::vector<surroundingPoints> findRiverSources(const float_t lower_bound);
-    std::vector<uint32_t> flowRivers(std::vector<surroundingPoints> sources);
+    std::vector<uint32_t> flowRivers(std::vector<surroundingPoints> sources,std::vector<uint32_t> foundIndices = std::vector<uint32_t>());
     uint32_t createSegment(const Platec::vec2ui& point);
 
     const Dimension worldDimension;
