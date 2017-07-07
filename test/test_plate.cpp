@@ -117,9 +117,9 @@ TEST(Plate, calculateCrust)
     index = 1;
     neighbors =  p.calculateCrust(dim.indexOf(Platec::vec2ui(x,y)));
     EXPECT_EQ(298, neighbors.westIndex );
-    EXPECT_EQ(200, neighbors.eastIndex );
+    EXPECT_EQ(0, neighbors.eastIndex );
     EXPECT_EQ(199, neighbors.northIndex);
-    EXPECT_EQ(99,  neighbors.southIndex);
+    EXPECT_EQ(0,  neighbors.southIndex);
 
     // point in the middle
     x = 50;
@@ -180,6 +180,12 @@ public:
     Platec::vec2ui enlargedPoint() {
         return _enlargePoint;
     }
+   Platec::vec2ui getPointLeftTop() const override
+   {
+        throw std::runtime_error("Not implemented");       
+   }
+ 
+
 private:
     uint32_t _collCount;
     uint32_t _area;
@@ -243,6 +249,8 @@ public:
             throw std::runtime_error("(MockSegments::getContinentAt) Unexpected call");
         }
     }
+   
+
 private:
     Platec::vec2ui _p;
     ContinentId _id;
@@ -340,6 +348,8 @@ public:
             throw std::runtime_error("(MockSegments2::getContinentAt) Unexpected call");
         }
     }
+    
+
 private:
     Platec::vec2ui _p;
     ContinentId _id;

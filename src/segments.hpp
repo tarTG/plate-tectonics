@@ -79,6 +79,7 @@ public:
     void setId(const uint32_t index,const ContinentId id) override;
     ContinentId getContinentAt(const Platec::vec2ui& point,
                               const Dimension& worldDimension) const override;
+    const std::vector<ContinentId>& getSegment() const;
 };
 
 #endif

@@ -89,6 +89,10 @@ ContinentId Segments::getContinentAt(const Platec::vec2ui& point,
     return seg;
 }
 
+const std::vector<ContinentId>& Segments::getSegment() const {
+    return segment;
+}
+
 const ContinentId& Segments::id(const uint32_t index) const {
     return segment[index];
 }

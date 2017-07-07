@@ -102,13 +102,13 @@ public:
      */
     void createPlates();
 
-    uint32_t getCycleCount() const throw() {
+    uint32_t getCycleCount() const {
         return cycle_count;
     }
-    uint32_t getIterationCount() const throw() {
+    uint32_t getIterationCount() const {
         return iter_count;
     }
-    const Dimension& getWorldDimension() const throw() {
+    const Dimension& getWorldDimension() const {
         return _worldDimension;
     }
     uint32_t getPlateCount() const throw(); ///< Return number of plates.
@@ -135,7 +135,7 @@ private:
     void removeEmptyPlates();
     void resolveJuxtapositions(const uint32_t& i, const uint32_t& j, const uint32_t& k,
                                const uint32_t& x_mod, const uint32_t& y_mod,
-                               const HeightMap& this_map, const AgeMap& this_age, uint32_t& continental_collisions);
+                               const HeightMap& this_map, const AgeMap& this_age);
 
     /**
      * Container for collision details between two plates.

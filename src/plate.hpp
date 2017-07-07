@@ -163,7 +163,7 @@ public:
     /// @param  wx  X coordinate of collision point on world map.
     /// @param  wy  Y coordinate of collision point on world map.
     /// @return Amount of crust aggregated to destination plate.
-    float aggregateCrust(plate* p, Platec::vec2ui point);
+    float aggregateCrust(plate& p, Platec::vec2ui point);
 
     /// Decrease the speed of plate amount relative to its total mass.
     ///

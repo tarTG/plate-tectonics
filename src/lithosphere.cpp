@@ -122,8 +122,15 @@ lithosphere::lithosphere(long seed, uint32_t width, uint32_t height, float sea_l
     
     // Genesis 1:9-10.
     std::for_each(tmp.begin(),tmp.end(), 
-                [&](float& value){ value = (value > sea_level) *
-                 (value+ CONTINENTAL_BASE ) +(value <= sea_level) * ( OCEANIC_BASE) ;});
+                [&](float& value){ 
+                    if(value > sea_level)
+                     {
+                        value += CONTINENTAL_BASE;
+                    }
+                    else
+                    {
+                        value = OCEANIC_BASE;
+                    }});
 
 
     // Scalp the +1 away from map side to get a power of two side length!
@@ -191,48 +198,48 @@ void lithosphere::growPlates()
             if (imap[n] >= num_plates)
             {
                 imap[n] = i;
-                area.border.push_back(n);
+                area.border.emplace_back(n);
 
                 if (area.top == _worldDimension.yMod(top + 1))
                 {
                     area.top = top;
-                    area.hgt++;
+                    ++area.hgt;
                 }
             }
 
             if (imap[s] >= num_plates)
             {
                 imap[s] = i;
-                area.border.push_back(s);
+                area.border.emplace_back(s);
 
                 if (btm == _worldDimension.yMod(area.btm + 1))
                 {
                     area.btm = btm;
-                    area.hgt++;
+                    ++area.hgt;
                 }
             }
 
             if (imap[w] >= num_plates)
             {
                 imap[w] = i;
-                area.border.push_back(w);
+                area.border.emplace_back(w);
 
                 if (area.lft == _worldDimension.xMod(lft + 1))
                 {
                     area.lft = lft;
-                    area.wdt++;
+                    ++area.wdt;
                 }
             }
 
             if (imap[e] >= num_plates)
             {
                 imap[e] = i;
-                area.border.push_back(e);
+                area.border.emplace_back(e);
 
                 if (rgt == _worldDimension.xMod(area.rgt + 1))
                 {
                     area.rgt = rgt;
-                    area.wdt++;
+                    ++area.wdt;
                 }
             }
 
@@ -251,8 +258,7 @@ void lithosphere::createPlates()
 
         // Initialize "Free plate center position" lookup table.
         // This way two plate centers will never be identical.
-        for (uint32_t i = 0; i < map_area; ++i)
-            imap[i] = i;
+        std::iota(imap.getData().begin(), imap.getData().end(), 0);
 
         // Select N plate centers from the global map.
 
@@ -349,7 +355,7 @@ bool lithosphere::isFinished() const
 // Move some crust from the SMALLER plate onto LARGER one.
 void lithosphere::resolveJuxtapositions(const uint32_t& i, const uint32_t& j, const uint32_t& k,
                                         const uint32_t& x_mod, const uint32_t& y_mod,
-                                        const HeightMap& this_map, const AgeMap& this_age, uint32_t& continental_collisions)
+                                        const HeightMap& this_map, const AgeMap& this_age)
 {
     ASSERT(i<num_plates, "Given invalid plate index");
 
@@ -374,7 +380,6 @@ void lithosphere::resolveJuxtapositions(const uint32_t& i, const uint32_t& j, co
 
         // Add collision to the earlier plate's list.
         collisions[i].push_back(coll);
-        ++continental_collisions;
     }
     else
     {
@@ -388,8 +393,6 @@ void lithosphere::resolveJuxtapositions(const uint32_t& i, const uint32_t& j, co
                                   * (1.0 - folding_ratio), amap[k]);
 
         collisions[imap[k]].push_back(coll);
-        ++continental_collisions;
-
         // Give the location to the larger plate.
         hmap[k] = this_map[j];
         imap[k] = i;
@@ -512,7 +515,8 @@ void lithosphere::updateHeightAndPlateIndexMaps(const uint32_t& map_area,
                 }
 
                 resolveJuxtapositions(i, j, k, x_mod, y_mod,
-                                      this_map, this_age, continental_collisions);
+                                      this_map, this_age);
+                ++continental_collisions;
             }
         }
     }
@@ -563,7 +567,7 @@ void lithosphere::updateCollisions()
                     (coll_ratio > aggr_overlap_rel))
             {
                 float amount = plates[i]->aggregateCrust(
-                                   plates[coll.index],
+                                   *plates[coll.index],
                                    Platec::vec2ui(coll.wx, coll.wy));
 
                 // Calculate new direction and speed for the
@@ -606,7 +610,7 @@ void lithosphere::removeEmptyPlates()
 void lithosphere::update()
 {
     try {
-        _steps++;
+        ++_steps;
         float totalVelocity = std::accumulate(plates,plates+ num_plates,0.f,[&](float sum, auto& plate){return sum + plate->getVelocity();} );;
         float systemKineticEnergy = std::accumulate(plates,plates+ num_plates,0.f,[&](float sum, auto& plate){return sum + plate->getMomentum();} );
         

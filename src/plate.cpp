@@ -152,7 +152,7 @@ void plate::addCrustBySubduction(const Platec::vec2ui& originPoint,const float_t
     }
 }
 
-float plate::aggregateCrust(plate* p, Platec::vec2ui point)
+float plate::aggregateCrust(plate& p, Platec::vec2ui point)
 {
 
     const auto index = bounds->getValidMapIndex(point);
@@ -179,7 +179,7 @@ float plate::aggregateCrust(plate* p, Platec::vec2ui point)
         return 0;   // Do not process empty continents.
     }
 
-    ContinentId activeContinent = p->selectCollisionSegment(point);
+    ContinentId activeContinent = p.selectCollisionSegment(point);
 
     // Wrap coordinates around world edges to safeguard subtractions.
     point = point + worldDimension.getDimensions();
@@ -192,14 +192,16 @@ float plate::aggregateCrust(plate* p, Platec::vec2ui point)
     float old_mass = mass.getMass();
 
     // Add all of the collided continent's crust to destination plate.
+    
+    
     for (uint32_t y = segments->getSegmentData(seg_id).getTop(); y <= segments->getSegmentData(seg_id).getBottom(); ++y)
     {
         for (uint32_t x = segments->getSegmentData(seg_id).getLeft(); x <= segments->getSegmentData(seg_id).getRight(); ++x)
         {
-            const uint32_t i = y * bounds->width() + x;
+            const uint32_t i = bounds->getDimension().indexOf(Platec::vec2ui(x,y));
             if ((segments->id(i) == seg_id) && (map[i] > 0))
             {
-                p->addCrustByCollision(point + Platec::vec2ui(x,y)- index.second,
+                p.addCrustByCollision(point + Platec::vec2ui(x,y)- index.second,
                                        map[i], age_map[i], activeContinent);
 
                 mass.incMass(-1.0f * map[i]);
@@ -252,10 +254,7 @@ const surroundingPoints plate::calculateCrust(const uint32_t index) const
           ret.westCrust = map[ret.westIndex];
         }
     }
-    else
-    {
-        ret.westIndex = bounds->index(Platec::vec2ui(0,position.y()));
-    } 
+
     
     if(position.x() < bounds->width()-1 || bounds->width()==worldDimension.getWidth() )
     {
@@ -272,10 +271,7 @@ const surroundingPoints plate::calculateCrust(const uint32_t index) const
           ret.eastCrust = map[ret.eastIndex];
         }
     }
-    else
-    {
-        ret.eastIndex = bounds->index(Platec::vec2ui(0,position.y()));
-    }
+
 
     
     if(position.y() > 0 || bounds->height()==worldDimension.getHeight() )
@@ -293,10 +289,7 @@ const surroundingPoints plate::calculateCrust(const uint32_t index) const
           ret.northCrust = map[ret.northIndex];
         }
     }
-    else
-    {
-        ret.northIndex = bounds->index(Platec::vec2ui(position.x(),0));
-    } 
+
       
     if(position.y() < bounds->height()-1 || bounds->height()==worldDimension.getHeight() )
     {
@@ -313,10 +306,7 @@ const surroundingPoints plate::calculateCrust(const uint32_t index) const
           ret.southCrust = map[ret.southIndex];
         }
     }
-    else
-    {
-        ret.southIndex = bounds->index(Platec::vec2ui(position.x(),0));
-    }
+
 
     return ret;
 }
@@ -419,10 +409,8 @@ void plate::erode(float lower_bound)
         float n_diff = map[index] - neighbors.northCrust;
         float s_diff = map[index] - neighbors.southCrust;
 
-        float min_diff = w_diff;
-        min_diff -= (min_diff - e_diff) * (e_diff < min_diff);
-        min_diff -= (min_diff - n_diff) * (n_diff < min_diff);
-        min_diff -= (min_diff - s_diff) * (s_diff < min_diff);
+
+        float min_diff = std::min({w_diff,e_diff,n_diff,s_diff});
 
         // Calculate the sum of difference between lower neighbours and
         // the TALLEST lower neighbour.
@@ -440,23 +428,25 @@ void plate::erode(float lower_bound)
             // crust from this peak so that it would be as tall as its
             // tallest lower neighbour. Thus first step is make ALL
             // lower neighbours and this point equally tall.
-            tmpHm[neighbors.westIndex ] += (w_diff - min_diff) * (neighbors.westCrust > 0);
-            tmpHm[neighbors.eastIndex ] += (e_diff - min_diff) * (neighbors.eastCrust > 0);
-            tmpHm[neighbors.northIndex] += (n_diff - min_diff) * (neighbors.northCrust > 0);
-            tmpHm[neighbors.southIndex] += (s_diff - min_diff) * (neighbors.southCrust > 0);
-            tmpHm[index] -= min_diff;
-
-            min_diff -= diff_sum;
-
-            // Spread the remaining crust equally among all lower nbours.
-            min_diff /= 1 + (neighbors.westCrust > 0) + (neighbors.eastCrust > 0) +
-                        (neighbors.northCrust > 0) + (neighbors.southCrust > 0);
-
-            tmpHm[neighbors.westIndex ] += min_diff * (neighbors.westCrust > 0);
-            tmpHm[neighbors.eastIndex ] += min_diff * (neighbors.eastCrust > 0);
-            tmpHm[neighbors.northIndex] += min_diff * (neighbors.northCrust > 0);
-            tmpHm[neighbors.southIndex] += min_diff * (neighbors.southCrust > 0);
-            tmpHm[index] += min_diff;
+            float median_min_diff = (min_diff - diff_sum)/( 1 + (neighbors.westCrust > 0) + (neighbors.eastCrust > 0) +
+                        (neighbors.northCrust > 0) + (neighbors.southCrust > 0));
+            if(neighbors.westCrust > 0)
+            {
+                tmpHm[neighbors.westIndex ] += (w_diff - min_diff) + median_min_diff;
+            }
+            if(neighbors.eastCrust > 0)
+            {
+                tmpHm[neighbors.eastIndex ] += (e_diff - min_diff) + median_min_diff;
+            }
+            if(neighbors.northCrust > 0)
+            {
+                tmpHm[neighbors.northIndex] += (n_diff - min_diff) + median_min_diff;
+            }
+            if(neighbors.southCrust > 0 )
+            {
+                tmpHm[neighbors.southIndex] += (s_diff - min_diff) + median_min_diff;
+            }
+            tmpHm[index] = tmpHm[index] - min_diff + median_min_diff;
         }
         else
         {
@@ -467,10 +457,22 @@ void plate::erode(float lower_bound)
             tmpHm[index] -= min_diff;
 
             // Spread all removed crust among all other lower neighbours.
-            tmpHm[neighbors.westIndex ] += unit * (w_diff - min_diff) * (neighbors.westCrust > 0);
-            tmpHm[neighbors.eastIndex ] += unit * (e_diff - min_diff) * (neighbors.eastCrust > 0);
-            tmpHm[neighbors.northIndex] += unit * (n_diff - min_diff) * (neighbors.northCrust > 0);
-            tmpHm[neighbors.southIndex] += unit * (s_diff - min_diff) * (neighbors.southCrust > 0);
+            if(neighbors.westCrust > 0)
+            {
+                tmpHm[neighbors.westIndex ] += unit * (w_diff - min_diff);
+            }
+            if(neighbors.eastCrust > 0)
+            {
+                tmpHm[neighbors.eastIndex ] += unit * (e_diff - min_diff);
+            }
+            if(neighbors.northCrust > 0)
+            {
+                tmpHm[neighbors.northIndex] += unit * (n_diff - min_diff);
+            }
+            if(neighbors.southCrust > 0)
+            {
+               tmpHm[neighbors.southIndex] += unit * (s_diff - min_diff);
+            }
         }
     }
     map = tmpHm;
@@ -550,10 +552,8 @@ void plate::setCrust(const Platec::vec2ui& point, float_t z, uint32_t t)
         const uint32_t itop = bounds->top();
         const uint32_t irgt = bounds->rightAsUintNonInclusive();
         const uint32_t ibtm = bounds->bottomAsUintNonInclusive();
-
-        auto normPoint = worldDimension.normalize(point);
         
-
+        auto normPoint = worldDimension.normalize(point);
         
         // Calculate distance of new point from plate edges.
         const uint32_t _lft = ilft - normPoint.x();
@@ -567,12 +567,6 @@ void plate::setCrust(const Platec::vec2ui& point, float_t z, uint32_t t)
         uint32_t d_rgt = _rgt & -(_rgt <= _lft) & -(_rgt < worldDimension.getWidth());
         uint32_t d_top = _top & -(_top <  _btm) & -(_top < worldDimension.getHeight());
         uint32_t d_btm = _btm & -(_btm <= _top) & -(_btm < worldDimension.getHeight());
-
-        // Scale all changes to multiple of 8.
-        d_lft = ((d_lft > 0) + (d_lft >> 3)) << 3;
-        d_rgt = ((d_rgt > 0) + (d_rgt >> 3)) << 3;
-        d_top = ((d_top > 0) + (d_top >> 3)) << 3;
-        d_btm = ((d_btm > 0) + (d_btm >> 3)) << 3;
 
         // Make sure plate doesn't grow bigger than the system it's in!
         if (bounds->width() + d_lft + d_rgt > worldDimension.getWidth())
@@ -598,19 +592,19 @@ void plate::setCrust(const Platec::vec2ui& point, float_t z, uint32_t t)
 
         HeightMap tmph = HeightMap(bounds->getDimension());
         AgeMap    tmpa = AgeMap(bounds->getDimension());
-        std::vector<uint32_t> tmps = std::vector<u_int32_t>(bounds->area(),255);
+        std::vector<uint32_t> tmps = std::vector<uint32_t>(bounds->area(),255);
 
         // copy old plate into new.
         for (uint32_t j = 0; j < old_height; ++j)
         {
             const uint32_t dest_i = (d_top + j) * bounds->width() + d_lft;
             const uint32_t src_i = j * old_width;
-            memcpy(&tmph[dest_i], &map[src_i], old_width *
-                   sizeof(float));
-            memcpy(&tmpa[dest_i], &age_map[src_i], old_width *
-                   sizeof(uint32_t));
-            memcpy(&tmps[dest_i], &segments->id(src_i), old_width *
-                   sizeof(uint32_t));
+            std::copy(map.getData().begin() + src_i,map.getData().begin() + src_i +old_width,
+                       tmph.getData().begin()+dest_i );
+            std::copy(age_map.getData().begin() + src_i,age_map.getData().begin() + src_i +old_width,
+                       tmpa.getData().begin()+dest_i );
+            std::copy(segments->getSegment().begin() + src_i,segments->getSegment().begin() + src_i +old_width,
+                       tmps.begin()+dest_i );
         }
 
         map     = tmph;
@@ -623,7 +617,6 @@ void plate::setCrust(const Platec::vec2ui& point, float_t z, uint32_t t)
 
         index = bounds->getValidMapIndex(normPoint);
 
-        assert(index.first < bounds->area());
     }
 
     // Update crust's age.
