@@ -32,40 +32,49 @@
 #include "plate.hpp"
 #include "heightmap.hpp"
 #include "utils.hpp"
-#include "plate_functions.hpp"
+#include "world_properties.h"
 
 
-plate::plate(const long seed,const HeightMap&  m, 
-            const Dimension& plateDimension,
+plate::plate( const long seed,const HeightMap&  m, 
+        const Dimension& plateDimension,
             const Platec::vec2f& topLeftCorner,
-         const uint32_t plate_age,const Dimension& worldDimension) :
+         const uint32_t index) :
     randsource(seed),
+    map(m),        
+    age_map(plateDimension), 
     mass(MassBuilder(m).build()),
-    map(m),
-    age_map(std::vector<uint32_t>(plateDimension.getArea(),0),plateDimension),
-    worldDimension(worldDimension),
-    movement(randsource) {
+    movement(randsource),
+    worldDimension(world_properties::get().getWorldDimension()),
+        index(index)
+{
     const uint32_t plate_area = plateDimension.getArea();
 
-    bounds = std::make_shared<Bounds>(worldDimension,
-                    topLeftCorner, plateDimension);
+    bounds = std::make_shared<Bounds>(topLeftCorner, plateDimension);
 
     
     auto mapItr = map.getData().begin();
     
     std::replace_if(age_map.getData().begin(),age_map.getData().end(),
-                    [&](const auto& val)
+                    [&](auto)
                     {
                         auto ret = *mapItr != 0;
                         ++mapItr;
                         return ret;
-                    }, plate_age);
+                    }, index); //use index als default plate age
 
 
     segments = std::make_shared<Segments>(plate_area);
     mySegmentCreator = std::make_shared<MySegmentCreator>(bounds, segments, map);
     segments->setSegmentCreator(mySegmentCreator);
     segments->setBounds(bounds);
+}
+
+void plate::setIndex(uint32_t index) {
+    this->index = index;
+}
+
+uint32_t plate::getIndex() const {
+    return index;
 }
 
 
@@ -233,10 +242,10 @@ void plate::collide(plate& p,const float_t coll_mass)
 
 const surroundingPoints plate::calculateCrust(const uint32_t index) const
 {
-    const Platec::vec2ui& position = bounds->getDimension().coordOF(index);
-    const Platec::vec2ui& position_world = worldDimension.pointMod(position);
-    const float_t height = map.get(index);
-    surroundingPoints ret;
+    const auto& position = bounds->getDimension().coordOF(index);
+    const auto& position_world = worldDimension.pointMod(position);
+    const auto height = map.get(index);
+    auto ret = surroundingPoints();
 
     ret.centerIndex = index;
     if(position.x() > 0 || bounds->width()==worldDimension.getWidth() )
@@ -319,7 +328,7 @@ std::vector<surroundingPoints> plate::findRiverSources(const float_t lower_bound
     for(const auto& val : map.getData())
     {
         tmp = calculateCrust(index);
-        if(val >= lower_bound && !tmp.oneIsLower())
+        if(val >= lower_bound && !tmp.centerIsLowest())
         {
             sources.emplace_back(tmp);
         }
@@ -330,43 +339,50 @@ std::vector<surroundingPoints> plate::findRiverSources(const float_t lower_bound
 
 std::vector<uint32_t> plate::flowRivers( std::vector<surroundingPoints> sources, std::vector<uint32_t> foundIndices)
 {
-    std::vector<surroundingPoints> newSources;
-    if(sources.empty())
-    {
-        return foundIndices;
-    }
+    auto newSources = std::vector<surroundingPoints>();
+    newSources.reserve(50);    
     
-    for(auto& val : sources) //get all sources
+    while(!sources.empty())
     {
-        if(!val.centerIsLowest()) // if center is not the lowest
+        newSources.clear();
+        for(auto& val : sources)
         {
-            newSources.push_back(calculateCrust(val.getLowestIndex())); //add lowest neighbor as source
-            foundIndices.emplace_back(val.centerIndex);
-
+            if(val.oneIsLower()) // if center is not the lowest
+            {
+                newSources.emplace_back(calculateCrust(val.getLowestIndex())); //add lowest neighbor as source
+                foundIndices.emplace_back(val.centerIndex);
+            }   
         }
+        sources.swap(newSources);
     }
-
-    return flowRivers(newSources,foundIndices);
+    return foundIndices;
 }
 
 void plate::erode(float lower_bound)
 {
     HeightMap tmpHm(bounds->getDimension());
     
-    auto sinks = flowRivers(findRiverSources(lower_bound));
-   //remove duplicates
-    std::sort( sinks.begin(), sinks.end() );
-    sinks.erase( std::unique( sinks.begin(), sinks.end() ), sinks.end() );
-    for(const auto& index : sinks)
+    if(world_properties::get().isRiver_erosion_enable())
     {
-        map[index] -= (map[index] - lower_bound) * 0.2;
+        auto sinks = flowRivers(findRiverSources(lower_bound));
+       //remove duplicates
+        std::sort( sinks.begin(), sinks.end() );
+        sinks.erase( std::unique( sinks.begin(), sinks.end() ), sinks.end() );
+        for(const auto& index : sinks)
+        {
+            map[index] -= (map[index] - lower_bound) * world_properties::get().getRiver_erosion_strength();
+        }
     }
 
     // Add random noise (10 %) to heightmap.
-    for(auto& val : map.getData())
+    if(world_properties::get().isNoise_enabel())
     {
-        val += 0.1 * val - (0.2 * (float)randsource.next_double() * val);
+        for(auto& val : map.getData())
+        {
+            val *= world_properties::get().getNoise_strength() - (0.2* (float)randsource.next_double());
+        }
     }
+
 
 
     MassBuilder massBuilder;
@@ -429,7 +445,7 @@ void plate::erode(float lower_bound)
             // tallest lower neighbour. Thus first step is make ALL
             // lower neighbours and this point equally tall.
             float median_min_diff = (min_diff - diff_sum)/( 1 + (neighbors.westCrust > 0) + (neighbors.eastCrust > 0) +
-                        (neighbors.northCrust > 0) + (neighbors.southCrust > 0));
+                        (neighbors.northCrust > 0) + (neighbors.southCrust > 0)) * world_properties::get().getDiffuse_strength();
             if(neighbors.westCrust > 0)
             {
                 tmpHm[neighbors.westIndex ] += (w_diff - min_diff) + median_min_diff;
@@ -450,7 +466,7 @@ void plate::erode(float lower_bound)
         }
         else
         {
-            float unit = min_diff / diff_sum;
+            float unit = (min_diff / diff_sum) * world_properties::get().getDiffuse_strength();
 
             // Remove all crust from this location making it as tall as
             // its tallest lower neighbour.
@@ -522,7 +538,7 @@ HeightMap& plate::getHeigthMap() {
 }
 
 
-void plate::move(const Dimension& worldDimension)
+void plate::move()
 {
     movement.move(worldDimension);
     bounds->shift(movement.velocityVector());
@@ -584,15 +600,15 @@ void plate::setCrust(const Platec::vec2ui& point, float_t z, uint32_t t)
         // Index out of bounds, but nowhere to grow!
         ASSERT(d_lft + d_rgt + d_top + d_btm != 0, "Invalid plate growth deltas");
 
-        const uint32_t old_width  = bounds->width();
-        const uint32_t old_height = bounds->height();
+        const auto old_width  = bounds->width();
+        const auto old_height = bounds->height();
 
         bounds->shift(Platec::vec2f(-1.0*d_lft, -1.0*d_top));
         bounds->grow(Platec::vec2ui(d_lft + d_rgt, d_top + d_btm));
 
-        HeightMap tmph = HeightMap(bounds->getDimension());
-        AgeMap    tmpa = AgeMap(bounds->getDimension());
-        std::vector<uint32_t> tmps = std::vector<uint32_t>(bounds->area(),255);
+        auto tmph = HeightMap(bounds->getDimension());
+        auto    tmpa = AgeMap(bounds->getDimension());
+        auto tmps = std::vector<uint32_t>(bounds->area());
 
         // copy old plate into new.
         for (uint32_t j = 0; j < old_height; ++j)

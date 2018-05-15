@@ -54,7 +54,7 @@ public:
     }    
 
     void set_all(const Value value) {
-        data = std::vector<Value>(data.size(),value);
+        std::vector<Value>(data.size(),value).swap(data);
     }
     
 
@@ -95,14 +95,14 @@ public:
         return &data[0];
     }
         
-    const uint32_t width() const {
+    uint32_t width() const {
         return dimension.getWidth();
     }
     
-    const uint32_t height() const {
-        return dimension.getHeight();
+    uint32_t height() const {
+       return dimension.getHeight();
     }
-    const uint32_t area() const {
+    uint32_t area() const {
         return dimension.getArea(); 
     }
 
