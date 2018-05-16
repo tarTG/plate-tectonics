@@ -628,7 +628,7 @@ void plate::setCrust(const Platec::vec2ui& point, float_t z, uint32_t t)
 
         map     = tmph;
         age_map = tmpa;
-        segments->reassign(bounds->area(),tmps);
+        segments->reassign(bounds->area(),std::move(tmps));
 
         // Shift all segment data to match new coordinates.
         segments->shift(Platec::vec2ui(d_lft, d_top));

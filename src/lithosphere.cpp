@@ -46,7 +46,6 @@ void lithosphere::createSlowNoise(float* tmp, const Dimension& tmpDim)
 lithosphere::lithosphere(long seed, uint32_t width, uint32_t height, float sea_level,
                          uint32_t erosion_period, float folding_ratio, uint32_t aggr_ratio_abs,
                          float aggr_ratio_rel, uint32_t num_cycles, uint32_t max_plates) :
-     worldDimension(Dimension(width,height)),
      wp(world_properties::get()),    
     hmap(width, height),
     imap(width, height),        
@@ -113,18 +112,27 @@ lithosphere::lithosphere(long seed, uint32_t width, uint32_t height, float sea_l
 
     // Scalp the +1 away from map side to get a power of two side length!
     // Practically only the redundant map edges become removed.
-
-    std::copy_if(tmp.begin(),tmp.end(),hmap.getData().begin(),[&](auto)
+    auto itr = hmap.getData().begin();
+    uint32_t counter = 0;
+    for(auto& val : tmp)
     {
-        static uint32_t counter = 0;
-        ++counter;
-        if(counter == wp.getWorldDimension().getWidth())
+        if(counter != wp.getWorldDimension().getWidth())
         {
-            counter = 0;
-            return false;
+            *itr = val;
         }
-        return true;
-    });               
+        
+        ++counter;
+        ++itr;
+        if(itr == hmap.getData().end())
+        {
+            break;
+        }
+    }
+
+//    std::copy_if(tmp.begin(),tmp.end(),hmap.getData().begin(),[&](auto)
+//    {
+//
+//    });               
                     
 
     collisions.resize(max_plates);
@@ -342,7 +350,7 @@ void lithosphere::resolveJuxtapositions(std::unique_ptr<plate>& pla, const uint3
                             (1.0 - wp.getFolding_ratio()), ageMapValue);
 
         // Add collision to the earlier plate's list.
-        collisions[pla->getIndex()].emplace_back(coll);
+        collisions[pla->getIndex()].push_back(coll);
     }
     else
     {

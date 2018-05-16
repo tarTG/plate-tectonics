@@ -80,7 +80,6 @@ private:
         const Platec::vec2ui point; ///< Coordinates of collision in world space.
         const float_t crust; ///< Amount of crust that will deform/subduct.
     };
-    const Dimension& worldDimension;
     world_properties& wp;
     HeightMap hmap; ///< Height map representing the topography of system.
     IndexMap imap; ///< Plate index map of the "owner" of each map point.
