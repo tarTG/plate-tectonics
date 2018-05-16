@@ -47,7 +47,7 @@ typedef struct {
     uint32_t step;
 } Params;
 
-char DEFAULT_FILENAME[] = "simuation";
+char DEFAULT_FILENAME[] = "simulation";
 
 void fill_params(Params& params, int argc, char* argv[])
 {

@@ -51,7 +51,6 @@ plate::plate( const long seed,const HeightMap&  m,
     const uint32_t plate_area = plateDimension.getArea();
 
     bounds = std::make_shared<Bounds>(topLeftCorner, plateDimension);
-
     
     auto mapItr = map.getData().begin();
     
@@ -329,7 +328,7 @@ std::vector<surroundingPoints> plate::findRiverSources(const float_t lower_bound
     for(const auto& val : map.getData())
     {
         tmp = calculateCrust(index);
-        if(val >= lower_bound && !tmp.centerIsLowest())
+        if(val >= lower_bound && !tmp.oneIsLower())
         {
             sources.emplace_back(tmp);
         }
@@ -348,7 +347,7 @@ std::vector<uint32_t> plate::flowRivers( std::vector<surroundingPoints> sources,
         newSources.clear();
         for(auto& val : sources)
         {
-            if(val.oneIsLower()) // if center is not the lowest
+            if(!val.centerIsLowest()) // if center is not the lowest
             {
                 newSources.emplace_back(calculateCrust(val.getLowestIndex())); //add lowest neighbor as source
                 foundIndices.emplace_back(val.centerIndex);
@@ -361,6 +360,7 @@ std::vector<uint32_t> plate::flowRivers( std::vector<surroundingPoints> sources,
 
 void plate::erode(float lower_bound)
 {
+
     HeightMap tmpHm(bounds->getDimension());
     
     if(wp.isRiver_erosion_enable())
@@ -374,6 +374,7 @@ void plate::erode(float lower_bound)
             map[index] -= (map[index] - lower_bound) * wp.getRiver_erosion_strength();
         }
     }
+
 
     // Add random noise (10 %) to heightmap.
     if(wp.isNoise_enabel())
@@ -494,6 +495,7 @@ void plate::erode(float lower_bound)
     }
     map = tmpHm;
     mass = massBuilder.build();
+
 }
 
 const std::pair<uint32_t,float_t> plate::getCollisionInfo(const Platec::vec2ui& point) const

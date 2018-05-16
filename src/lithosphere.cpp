@@ -33,6 +33,7 @@
 #include <iostream>
 #include <algorithm>
 #include <numeric>
+#include <iostream>
 
 
 
@@ -117,7 +118,7 @@ lithosphere::lithosphere(long seed, uint32_t width, uint32_t height, float sea_l
     {
         static uint32_t counter = 0;
         ++counter;
-        if(counter == worldDimension.getWidth())
+        if(counter == wp.getWorldDimension().getWidth())
         {
             counter = 0;
             return false;
@@ -157,24 +158,24 @@ void lithosphere::growPlates()
             max_border = std::max(max_border , N);
             
             const uint32_t j = _randsource.next() % N;
-            const auto p = worldDimension.coordOF(area.border[j]);
+            const auto p = wp.getWorldDimension().coordOF(area.border[j]);
 
-            const auto lft = worldDimension.xCap(p.getLeftPosition());
-            const auto rgt = worldDimension.xMod(p.getRightPosition());
-            const auto top =  worldDimension.yCap(p.getTopPosition() );
-            const auto btm = worldDimension.yMod(p.getBottomPosition());
+            const auto lft = wp.getWorldDimension().xCap(p.getLeftPosition());
+            const auto rgt = wp.getWorldDimension().xMod(p.getRightPosition());
+            const auto top =  wp.getWorldDimension().yCap(p.getTopPosition() );
+            const auto btm = wp.getWorldDimension().yMod(p.getBottomPosition());
 
-            const uint32_t n = worldDimension.indexOf(top); // North.
-            const uint32_t s = worldDimension.indexOf(btm); // South.
-            const uint32_t w = worldDimension.indexOf(lft);// West.
-            const uint32_t e = worldDimension.indexOf(rgt);// East.
+            const uint32_t n = wp.getWorldDimension().indexOf(top); // North.
+            const uint32_t s = wp.getWorldDimension().indexOf(btm); // South.
+            const uint32_t w = wp.getWorldDimension().indexOf(lft);// West.
+            const uint32_t e = wp.getWorldDimension().indexOf(rgt);// East.
 
             if (imap[n] >= num_plates)
             {
                 imap[n] = i;
                 area.border.emplace_back(n);
 
-                if (area.top == worldDimension.yMod(top.y() + 1))
+                if (area.top == wp.getWorldDimension().yMod(top.y() + 1))
                 {
                     area.top = top.y();
                     ++area.hgt;
@@ -186,7 +187,7 @@ void lithosphere::growPlates()
                 imap[s] = i;
                 area.border.emplace_back(s);
 
-                if (btm.y() == worldDimension.yMod(area.btm + 1))
+                if (btm.y() == wp.getWorldDimension().yMod(area.btm + 1))
                 {
                     area.btm = btm.y();
                     ++area.hgt;
@@ -198,7 +199,7 @@ void lithosphere::growPlates()
                 imap[w] = i;
                 area.border.emplace_back(w);
 
-                if (area.lft == worldDimension.xMod(lft.x() + 1))
+                if (area.lft == wp.getWorldDimension().xMod(lft.x() + 1))
                 {
                     area.lft = lft.x();
                     ++area.wdt;
@@ -210,7 +211,7 @@ void lithosphere::growPlates()
                 imap[e] = i;
                 area.border.emplace_back(e);
 
-                if (rgt.x() == worldDimension.xMod(area.rgt + 1))
+                if (rgt.x() == wp.getWorldDimension().xMod(area.rgt + 1))
                 {
                     area.rgt = rgt.x();
                     ++area.wdt;
@@ -226,7 +227,7 @@ void lithosphere::growPlates()
 
 void lithosphere::createPlates()
 {
-    const uint32_t map_area = worldDimension.getArea();
+    const uint32_t map_area = wp.getWorldDimension().getArea();
     num_plates = wp.getMax_plates();
 
     // Initialize "Free plate center position" lookup table.
@@ -237,17 +238,17 @@ void lithosphere::createPlates()
     for (auto& area : plate_areas)
     {
         // Randomly select an unused plate origin.
-        const uint32_t p = (uint32_t)_randsource.next() % (map_area);
+        const uint32_t p = (uint32_t)_randsource.next() % (map_area -1);
 
-        area.lft = area.rgt = worldDimension.xFromIndex(p); // Save origin...
-        area.top = area.btm = worldDimension.yFromIndex(p);
+        area.lft = area.rgt = wp.getWorldDimension().xFromIndex(p); // Save origin...
+        area.top = area.btm = wp.getWorldDimension().yFromIndex(p);
         area.wdt = area.hgt = 1;
 
         area.border.clear();
         area.border.emplace_back(p); 
     }
 
-    imap.set_all(std::numeric_limits<uint32_t>::max());
+        imap.set_all(0xFFFFFFFF);
 
     growPlates();
 
@@ -260,8 +261,8 @@ void lithosphere::createPlates()
     for (uint32_t i = 0; i < num_plates; ++i) {
         plateArea& area = plate_areas[i];
 
-        area.wdt = worldDimension.xCap(area.wdt);
-        area.hgt = worldDimension.yCap(area.hgt);
+        area.wdt = wp.getWorldDimension().xCap(area.wdt);
+        area.hgt = wp.getWorldDimension().yCap(area.hgt);
 
         const uint32_t x0 = area.lft;
         const uint32_t x1 = 1 + x0 + area.wdt;
@@ -276,7 +277,7 @@ void lithosphere::createPlates()
         {
             for (uint32_t x = x0; x < x1; ++x) 
             {
-                auto k = worldDimension.pointMod(Platec::vec2ui(x, y));
+                auto k = wp.getWorldDimension().pointMod(Platec::vec2ui(x, y));
                 if(imap[k] == i)
                 {
                     *pmapItr = hmap[k];
@@ -389,7 +390,7 @@ uint32_t lithosphere::updateHeightAndPlateIndexMaps()
             {
                 if (*this_map < 2 * FLT_EPSILON) // No crust here...
                     continue;
-                const auto p = worldDimension.pointMod(Platec::vec2ui(x, y));
+                const auto p = wp.getWorldDimension().pointMod(Platec::vec2ui(x, y));
 
                 if (imap[p] >= num_plates) // No one here yet?
                 {
@@ -535,37 +536,40 @@ void lithosphere::updateCollisions()
 // Remove empty plates from the system.
 void lithosphere::removeEmptyPlates()
 {
-    if (num_plates > 1)
+   for (uint32_t i = 0; i < num_plates; ++i)
     {
-        for (auto& pla : plates)
+        if (num_plates == 1)
+            puts("ONLY ONE PLATE LEFT!");
+        else if (plate_indices_found[i] == 0)
         {
-            if (plate_indices_found[pla->getIndex()] == 0)
-            {
-                pla = std::move(plates[num_plates - 1]);
-                plates.erase(plates.end() -1);
-                pla->setIndex(num_plates - 1);
-                plate_indices_found[pla->getIndex()]= std::move(plate_indices_found[num_plates - 1]);
-                plate_indices_found.erase(plate_indices_found.end() -1);
-                // Life is seldom as simple as seems at first.
-                // Replace the moved plate's index in the index map
-                // to match its current position in the array!
-                --num_plates;
-                std::replace_if(imap.getData().begin(),imap.getData().end(),
-                        [&](const auto& val){return val == num_plates;},pla->getIndex()
-                      );
-            }
+           /// delete plates[i];
+            plates[i] = std::move(plates[num_plates - 1]);
+            plates.erase(plates.end() -1);
+            plate_indices_found[i]= std::move(plate_indices_found[num_plates - 1]);
+            plate_indices_found.erase(plate_indices_found.end() -1);
+            // Life is seldom as simple as seems at first.
+            // Replace the moved plate's index in the index map
+            // to match its current position in the array!
+                        
+            --num_plates;
+            std::replace_if(imap.getData().begin(),imap.getData().end(),
+                    [&](const auto& val){return val == num_plates;},i
+                  );
+            --i;
+
         }
-    }
-    else
-    {
-         puts("ONLY ONE PLATE LEFT!");
-    }
+   }
+   for (uint32_t i = 0; i < num_plates; ++i)
+   {
+       plates.at(i)->setIndex(i);
+   }
+
 }
 
 void lithosphere::update()
 {
     ++_steps;
-    float totalVelocity = std::accumulate(plates.begin(),plates.end(),0.f,[&](float sum, auto& plate){return sum + plate->getVelocity();} );;
+    float totalVelocity = std::accumulate(plates.begin(),plates.end(),0.f,[&](float sum, auto& plate){return sum + plate->getVelocity();} );
     float systemKineticEnergy = std::accumulate(plates.begin(),plates.end(),0.f,[&](float sum, auto& plate){return sum + plate->getMomentum();} );
 
 
@@ -657,7 +661,7 @@ void lithosphere::update()
                         val = *prevImapItr;
                         if(val < num_plates)
                         {
-                            plates[val]->setCrust(worldDimension.coordOF(i), wp.getOceanic_base(),
+                            plates[val]->setCrust(wp.getWorldDimension().coordOF(i), wp.getOceanic_base(),
                                               iter_count);
                         }
                     }
@@ -710,7 +714,7 @@ void lithosphere::update()
 
 void lithosphere::restart()
 {
-    const uint32_t map_area = worldDimension.getArea();
+    const uint32_t map_area = wp.getWorldDimension().getArea();
     if(wp.getMax_cycles() != 0)
     {
         wp.setCycle_count(wp.getCycle_count() +1); // No increment if running for ever.
@@ -735,7 +739,7 @@ void lithosphere::restart()
         {
             for (uint32_t x = x0; x < x1; ++x, ++j)
             {
-                const auto index = worldDimension.normalize(
+                const auto index = wp.getWorldDimension().normalize(
                                     Platec::vec2ui(x,y));
 
                 const float h0 = hmap[index];
@@ -752,12 +756,12 @@ void lithosphere::restart()
     clearPlates();
 
 
-    if(wp.getMax_cycles() == 0) //infinit
-    {
-        return;
-    }
+//    if(wp.getMax_cycles() == 0) //infinit
+//    {
+//        return;
+//    }
     
-    if (wp.getCycle_count() < wp.getMax_cycles())
+    if (wp.getCycle_count() < wp.getMax_cycles()  + !world_properties::get().getMax_cycles())
     {
         createPlates();
 
@@ -775,7 +779,7 @@ void lithosphere::restart()
             {
                 for (uint32_t x = x0; x < x1; ++x)
                 {
-                    *this_age = amap[worldDimension.normalize(Platec::vec2ui(x,y))];
+                    *this_age = amap[wp.getWorldDimension().normalize(Platec::vec2ui(x,y))];
                     ++this_age;
                 }
             }
@@ -803,12 +807,12 @@ void lithosphere::restart()
 
 uint32_t lithosphere::getWidth() const
 {
-    return worldDimension.getWidth();
+    return wp.getWorldDimension().getWidth();
 }
 
 uint32_t lithosphere::getHeight() const
 {
-    return worldDimension.getHeight();
+    return wp.getWorldDimension().getHeight();
 }
 
 uint32_t* lithosphere::getPlatesMap(){
