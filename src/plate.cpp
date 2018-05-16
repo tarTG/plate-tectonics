@@ -32,19 +32,20 @@
 #include "plate.hpp"
 #include "heightmap.hpp"
 #include "utils.hpp"
-#include "world_properties.h"
 
 
 plate::plate( const long seed,const HeightMap&  m, 
         const Dimension& plateDimension,
             const Platec::vec2f& topLeftCorner,
          const uint32_t index) :
+   worldDimension(world_properties::get().getWorldDimension()),
+    wp(world_properties::get()),
     randsource(seed),
     map(m),        
     age_map(plateDimension), 
     mass(MassBuilder(m).build()),
     movement(randsource),
-    worldDimension(world_properties::get().getWorldDimension()),
+
         index(index)
 {
     const uint32_t plate_area = plateDimension.getArea();
@@ -362,7 +363,7 @@ void plate::erode(float lower_bound)
 {
     HeightMap tmpHm(bounds->getDimension());
     
-    if(world_properties::get().isRiver_erosion_enable())
+    if(wp.isRiver_erosion_enable())
     {
         auto sinks = flowRivers(findRiverSources(lower_bound));
        //remove duplicates
@@ -370,16 +371,16 @@ void plate::erode(float lower_bound)
         sinks.erase( std::unique( sinks.begin(), sinks.end() ), sinks.end() );
         for(const auto& index : sinks)
         {
-            map[index] -= (map[index] - lower_bound) * world_properties::get().getRiver_erosion_strength();
+            map[index] -= (map[index] - lower_bound) * wp.getRiver_erosion_strength();
         }
     }
 
     // Add random noise (10 %) to heightmap.
-    if(world_properties::get().isNoise_enabel())
+    if(wp.isNoise_enabel())
     {
         for(auto& val : map.getData())
         {
-            val *= world_properties::get().getNoise_strength() - (0.2* (float)randsource.next_double());
+            val *= wp.getNoise_strength() - (0.2* (float)randsource.next_double());
         }
     }
 
@@ -445,7 +446,7 @@ void plate::erode(float lower_bound)
             // tallest lower neighbour. Thus first step is make ALL
             // lower neighbours and this point equally tall.
             float median_min_diff = (min_diff - diff_sum)/( 1 + (neighbors.westCrust > 0) + (neighbors.eastCrust > 0) +
-                        (neighbors.northCrust > 0) + (neighbors.southCrust > 0)) * world_properties::get().getDiffuse_strength();
+                        (neighbors.northCrust > 0) + (neighbors.southCrust > 0)) * wp.getDiffuse_strength();
             if(neighbors.westCrust > 0)
             {
                 tmpHm[neighbors.westIndex ] += (w_diff - min_diff) + median_min_diff;
@@ -466,7 +467,7 @@ void plate::erode(float lower_bound)
         }
         else
         {
-            float unit = (min_diff / diff_sum) * world_properties::get().getDiffuse_strength();
+            float unit = (min_diff / diff_sum) * wp.getDiffuse_strength();
 
             // Remove all crust from this location making it as tall as
             // its tallest lower neighbour.
@@ -607,7 +608,7 @@ void plate::setCrust(const Platec::vec2ui& point, float_t z, uint32_t t)
         bounds->grow(Platec::vec2ui(d_lft + d_rgt, d_top + d_btm));
 
         auto tmph = HeightMap(bounds->getDimension());
-        auto    tmpa = AgeMap(bounds->getDimension());
+        auto tmpa = AgeMap(bounds->getDimension());
         auto tmps = std::vector<uint32_t>(bounds->area());
 
         // copy old plate into new.

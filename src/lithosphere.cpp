@@ -45,6 +45,8 @@ void lithosphere::createSlowNoise(float* tmp, const Dimension& tmpDim)
 lithosphere::lithosphere(long seed, uint32_t width, uint32_t height, float sea_level,
                          uint32_t erosion_period, float folding_ratio, uint32_t aggr_ratio_abs,
                          float aggr_ratio_rel, uint32_t num_cycles, uint32_t max_plates) :
+     worldDimension(Dimension(width,height)),
+     wp(world_properties::get()),    
     hmap(width, height),
     imap(width, height),        
     amap(width, height),
@@ -52,27 +54,27 @@ lithosphere::lithosphere(long seed, uint32_t width, uint32_t height, float sea_l
     plate_indices_found(max_plates),
     iter_count(0),
     num_plates(0),
-    _randsource(seed),
-    _steps(0),
-        worldDimension(Dimension(width,height))
+    _randsource(seed),        
+    _steps(0)
 {
     //limit dimension
+  //  wp = ;
 
-    world_properties::get().setWorldDimension(worldDimension);
-    world_properties::get().setAggr_overlap_abs(aggr_ratio_abs);
-    world_properties::get().setAggr_overlap_rel(aggr_ratio_rel);
-    world_properties::get().setErosion_period(erosion_period);
-    world_properties::get().setFolding_ratio(folding_ratio);
-    world_properties::get().setMax_cycles(num_cycles);
-    world_properties::get().setMax_plates(max_plates);
+    wp.setWorldDimension(Dimension(width,height));
+    wp.setAggr_overlap_abs(aggr_ratio_abs);
+    wp.setAggr_overlap_rel(aggr_ratio_rel);
+    wp.setErosion_period(erosion_period);
+    wp.setFolding_ratio(folding_ratio);
+    wp.setMax_cycles(num_cycles);
+    wp.setMax_plates(max_plates);
     Dimension tmpDim = Dimension(width+1, height+1);
-    std::vector<float_t> tmp = std::vector<float_t>(tmpDim.getArea());
+    auto tmp = std::vector<float_t>(tmpDim.getArea());
 
     createSlowNoise(&tmp[0], tmpDim);
 
     //find min and max element
-    float_t lowest =  *std::min_element(tmp.begin(), tmp.end());
-    float_t highest = *std::max_element(tmp.begin(), tmp.end());
+    auto lowest =  *std::min_element(tmp.begin(), tmp.end());
+    auto highest = *std::max_element(tmp.begin(), tmp.end());
     
     //normalize
     std::for_each(tmp.begin(),tmp.end(), [&](auto& value) {value = (value - lowest) / (highest - lowest);});
@@ -100,11 +102,11 @@ lithosphere::lithosphere(long seed, uint32_t width, uint32_t height, float sea_l
                 [&](auto& value){ 
                     if(value > sea_level)
                      {
-                        value += world_properties::get().getContinental_base();
+                        value += wp.getContinental_base();
                     }
                     else
                     {
-                        value = world_properties::get().getOceanic_base();
+                        value = wp.getOceanic_base();
                     }});
 
 
@@ -224,80 +226,74 @@ void lithosphere::growPlates()
 
 void lithosphere::createPlates()
 {
-    try {
-        const uint32_t map_area = worldDimension.getArea();
-        num_plates = world_properties::get().getMax_plates();
+    const uint32_t map_area = worldDimension.getArea();
+    num_plates = wp.getMax_plates();
 
-        // Initialize "Free plate center position" lookup table.
-        // This way two plate centers will never be identical.
+    // Initialize "Free plate center position" lookup table.
+    // This way two plate centers will never be identical.
 
-        // Select N plate centers from the global map.
-        std::vector<plateArea>(num_plates).swap(plate_areas);
-        for (auto& area : plate_areas)
-        {
-            // Randomly select an unused plate origin.
-            const uint32_t p = (uint32_t)_randsource.next() % (map_area);
+    // Select N plate centers from the global map.
+    std::vector<plateArea>(num_plates).swap(plate_areas);
+    for (auto& area : plate_areas)
+    {
+        // Randomly select an unused plate origin.
+        const uint32_t p = (uint32_t)_randsource.next() % (map_area);
 
-            area.lft = area.rgt = worldDimension.xFromIndex(p); // Save origin...
-            area.top = area.btm = worldDimension.yFromIndex(p);
-            area.wdt = area.hgt = 1;
+        area.lft = area.rgt = worldDimension.xFromIndex(p); // Save origin...
+        area.top = area.btm = worldDimension.yFromIndex(p);
+        area.wdt = area.hgt = 1;
 
-            area.border.clear();
-            area.border.emplace_back(p); 
-        }
-
-        imap.set_all(std::numeric_limits<uint32_t>::max());
-
-        growPlates();
-
-        // check all the points of the map are owned
-        for (const auto index : imap.getData()) {
-            ASSERT(index<num_plates, "A point was not assigned to any plate");
-        }
-        plates = std::vector<std::unique_ptr<plate>>(num_plates);
-        // Extract and create plates from initial terrain.
-        for (uint32_t i = 0; i < num_plates; ++i) {
-            plateArea& area = plate_areas[i];
-
-            area.wdt = worldDimension.xCap(area.wdt);
-            area.hgt = worldDimension.yCap(area.hgt);
-
-            const uint32_t x0 = area.lft;
-            const uint32_t x1 = 1 + x0 + area.wdt;
-            const uint32_t y0 = area.top;
-            const uint32_t y1 = 1 + y0 + area.hgt;
-            const uint32_t width = x1 - x0;
-            const uint32_t height = y1 - y0;
-            auto pmap = std::vector<float_t>(width * height,0.f);
-            auto pmapItr = pmap.begin();
-            // Copy plate's height data from global map into local map.
-            for (uint32_t y = y0; y < y1; ++y) 
-            {
-                for (uint32_t x = x0; x < x1; ++x) 
-                {
-                    auto k = worldDimension.pointMod(Platec::vec2ui(x, y));
-                    if(imap[k] == i)
-                    {
-                        *pmapItr = hmap[k];
-                    }
-                    ++pmapItr;
-                }
-            }
-            // Create plate.
-            const Dimension plaDim(width, height);
-            plates[i] = std::make_unique<plate>(_randsource.next(), HeightMap(std::move(pmap),plaDim)
-                        , plaDim, Platec::vec2f(x0, y0), i);
-        }
-
-        iter_count = num_plates + world_properties::get().getMax_buoyancy_age();
-        peak_Ek = 0;
-        last_coll_count = 0;
-
-    } catch (const std::exception& e) {
-        std::string msg = "Problem during createPlates: ";
-        msg = msg + e.what();
-        throw std::runtime_error(msg.c_str());
+        area.border.clear();
+        area.border.emplace_back(p); 
     }
+
+    imap.set_all(std::numeric_limits<uint32_t>::max());
+
+    growPlates();
+
+    // check all the points of the map are owned
+    for (const auto index : imap.getData()) {
+        ASSERT(index<num_plates, "A point was not assigned to any plate");
+    }
+    plates = std::vector<std::unique_ptr<plate>>(num_plates);
+    // Extract and create plates from initial terrain.
+    for (uint32_t i = 0; i < num_plates; ++i) {
+        plateArea& area = plate_areas[i];
+
+        area.wdt = worldDimension.xCap(area.wdt);
+        area.hgt = worldDimension.yCap(area.hgt);
+
+        const uint32_t x0 = area.lft;
+        const uint32_t x1 = 1 + x0 + area.wdt;
+        const uint32_t y0 = area.top;
+        const uint32_t y1 = 1 + y0 + area.hgt;
+        const uint32_t width = x1 - x0;
+        const uint32_t height = y1 - y0;
+        auto pmap = std::vector<float_t>(width * height,0.f);
+        auto pmapItr = pmap.begin();
+        // Copy plate's height data from global map into local map.
+        for (uint32_t y = y0; y < y1; ++y) 
+        {
+            for (uint32_t x = x0; x < x1; ++x) 
+            {
+                auto k = worldDimension.pointMod(Platec::vec2ui(x, y));
+                if(imap[k] == i)
+                {
+                    *pmapItr = hmap[k];
+                }
+                ++pmapItr;
+            }
+        }
+        // Create plate.
+        const Dimension plaDim(width, height);
+        plates[i] = std::make_unique<plate>(_randsource.next(), HeightMap(std::move(pmap),plaDim)
+                    , plaDim, Platec::vec2f(x0, y0), i);
+    }
+
+    iter_count = num_plates + wp.getMax_buoyancy_age();
+    peak_Ek = 0;
+    last_coll_count = 0;
+
 }
 
 uint32_t lithosphere::getPlateCount() const
@@ -334,7 +330,7 @@ void lithosphere::resolveJuxtapositions(std::unique_ptr<plate>& pla, const uint3
     if (this_area < prev_area)
     {
         plateCollision coll(imap[p],p,
-                            mapValue * world_properties::get().getFolding_ratio());
+                            mapValue * wp.getFolding_ratio());
 
         // Give some...
         hmap[p] += coll.crust;
@@ -342,7 +338,7 @@ void lithosphere::resolveJuxtapositions(std::unique_ptr<plate>& pla, const uint3
 
         // And take some.
         pla->setCrust(p, mapValue *
-                            (1.0 - world_properties::get().getFolding_ratio()), ageMapValue);
+                            (1.0 - wp.getFolding_ratio()), ageMapValue);
 
         // Add collision to the earlier plate's list.
         collisions[pla->getIndex()].emplace_back(coll);
@@ -350,12 +346,12 @@ void lithosphere::resolveJuxtapositions(std::unique_ptr<plate>& pla, const uint3
     else
     {
         plateCollision coll(pla->getIndex(), p,
-                            hmap[p] * world_properties::get().getFolding_ratio());
+                            hmap[p] * wp.getFolding_ratio());
 
         pla->setCrust(p,mapValue+coll.crust, amap[p]);
 
         plates[imap[p]]->setCrust(p, hmap[p]
-                                  * (1.0 - world_properties::get().getFolding_ratio()), amap[p]);
+                                  * (1.0 - wp.getFolding_ratio()), amap[p]);
 
         collisions[imap[p]].emplace_back(coll);
         // Give the location to the larger plate.
@@ -409,15 +405,15 @@ uint32_t lithosphere::updateHeightAndPlateIndexMaps()
                 // DO NOT ACCEPT HEIGHT EQUALITY! Equality leads to subduction
                 // of shore that 's barely above sea level. It's a lot less
                 // serious problem to treat very shallow waters as continent...
-                const bool prev_is_oceanic = hmap[p] < world_properties::get().getContinental_base();
-                const bool this_is_oceanic = *this_map < world_properties::get().getContinental_base();
+                const bool prev_is_oceanic = hmap[p] < wp.getContinental_base();
+                const bool this_is_oceanic = *this_map < wp.getContinental_base();
 
                 const uint32_t prev_timestamp = plates[imap[p]]->
                                                 getCrustTimestamp(p);
                 const uint32_t this_timestamp = *this_age;
-                const bool prev_is_bouyant = (hmap[p] > *this_map) |
-                                                 ((hmap[p] + 2 * FLT_EPSILON > *this_map) &
-                                                  (hmap[p] < 2 * FLT_EPSILON + *this_map) &
+                const bool prev_is_bouyant = (hmap[p] > *this_map) ||
+                                                 ((hmap[p] + 2 * FLT_EPSILON > *this_map) &&
+                                                  (hmap[p] < 2 * FLT_EPSILON + *this_map) &&
                                                   (prev_timestamp >= this_timestamp));
 
                 // Handle subduction of oceanic crust as special case.
@@ -426,9 +422,9 @@ uint32_t lithosphere::updateHeightAndPlateIndexMaps()
                     // The level of effect that subduction has
                     // is directly related to the amount of water
                     // on top of the subducting plate.
-                    const float sediment = world_properties::get().getSubduct_ratio() * world_properties::get().getOceanic_base() *
-                                           (world_properties::get().getContinental_base() - *this_map) /
-                                           world_properties::get().getContinental_base();
+                    const float sediment = wp.getSubduct_ratio() * wp.getOceanic_base() *
+                                           (wp.getContinental_base() - *this_map) /
+                                           wp.getContinental_base();
 
                     // Save collision to the receiving plate's list.
                     plateCollision coll(pla->getIndex(), p, sediment);
@@ -440,21 +436,21 @@ uint32_t lithosphere::updateHeightAndPlateIndexMaps()
                     // b) protecting subducted locations from receiving
                     //    crust from other subductions/collisions.
                     pla->setCrust(p, *this_map -
-                                        world_properties::get().getOceanic_base() , this_timestamp);
+                                        wp.getOceanic_base() , this_timestamp);
 
                     if (*this_map <= 0)
                         continue; // Nothing more to collide.
                 } else if (prev_is_oceanic) {
-                    const float sediment = world_properties::get().getSubduct_ratio() * world_properties::get().getOceanic_base()  *
-                                           (world_properties::get().getContinental_base() - hmap[p]) /
-                                           world_properties::get().getContinental_base();
+                    const float sediment = wp.getSubduct_ratio() * wp.getOceanic_base()  *
+                                           (wp.getContinental_base() - hmap[p]) /
+                                           wp.getContinental_base();
 
                     plateCollision coll(imap[p], p, sediment);
                     subductions[pla->getIndex()].emplace_back(coll);
 
                     plates[imap[p]]->setCrust(p, hmap[p] -
-                                              world_properties::get().getOceanic_base()  , prev_timestamp);
-                    hmap[p] -= world_properties::get().getOceanic_base()  ;
+                                              wp.getOceanic_base()  , prev_timestamp);
+                    hmap[p] -= wp.getOceanic_base()  ;
 
                     if (hmap[p] <= 0) {
                         imap[p] = pla->getIndex();
@@ -518,8 +514,8 @@ void lithosphere::updateCollisions()
                 coll_ratio += (coll_ratio_j - coll_ratio);
             }
 
-            if ((coll_count > world_properties::get().getAggr_overlap_abs()) ||
-                    (coll_ratio > world_properties::get().getAggr_overlap_rel()))
+            if ((coll_count > wp.getAggr_overlap_abs()) ||
+                    (coll_ratio > wp.getAggr_overlap_rel()))
             {
                 float amount = pla->aggregateCrust(
                                    *plates[coll.index],
@@ -568,170 +564,204 @@ void lithosphere::removeEmptyPlates()
 
 void lithosphere::update()
 {
-    try {
-        ++_steps;
-        float totalVelocity = std::accumulate(plates.begin(),plates.end(),0.f,[&](float sum, auto& plate){return sum + plate->getVelocity();} );;
-        float systemKineticEnergy = std::accumulate(plates.begin(),plates.end(),0.f,[&](float sum, auto& plate){return sum + plate->getMomentum();} );
-        
+    ++_steps;
+    float totalVelocity = std::accumulate(plates.begin(),plates.end(),0.f,[&](float sum, auto& plate){return sum + plate->getVelocity();} );;
+    float systemKineticEnergy = std::accumulate(plates.begin(),plates.end(),0.f,[&](float sum, auto& plate){return sum + plate->getMomentum();} );
 
-        peak_Ek = std::max(systemKineticEnergy,peak_Ek);
-        
 
-        // If there's no continental collisions during past iterations,
-        // then interesting activity has ceased and we should restart.
-        // Also if the simulation has been going on for too long already,
-        // restart, because interesting stuff has most likely ended.
-        if (totalVelocity < world_properties::get().getRestart_speed_limit() ||
-                systemKineticEnergy / peak_Ek < world_properties::get().getRestart_energy_ratio() ||
-                last_coll_count > world_properties::get().getNo_collision_time_limit() ||
-                iter_count > world_properties::get().getRestart_iterations())
-        {
-            restart();
-            return;
-        }
+    peak_Ek = std::max(systemKineticEnergy,peak_Ek);
 
-        // Keep a copy of the previous index map
-        IndexMap prev_imap = imap;
 
-        // Realize accumulated external forces to each plate.
+    // If there's no continental collisions during past iterations,
+    // then interesting activity has ceased and we should restart.
+    // Also if the simulation has been going on for too long already,
+    // restart, because interesting stuff has most likely ended.
+    if (totalVelocity < wp.getRestart_speed_limit() ||
+            systemKineticEnergy / peak_Ek < wp.getRestart_energy_ratio() ||
+            last_coll_count > wp.getNo_collision_time_limit() ||
+            iter_count > wp.getRestart_iterations())
+    {
+        restart();
+        return;
+    }
+
+    // Keep a copy of the previous index map
+    IndexMap prev_imap = imap;
+
+    // Realize accumulated external forces to each plate.
+    for (auto& val : plates)
+    {
+        val->resetSegments();
+        val->move();
+    }
+    if (wp.getErosion_period() > 0 && iter_count % wp.getErosion_period() == 0)
+    {
         for (auto& val : plates)
         {
-            val->resetSegments();
-            val->move();
-        }
-        if (world_properties::get().getErosion_period() > 0 && iter_count % world_properties::get().getErosion_period() == 0)
+            val->erode(wp.getContinental_base());
+
+        }       
+    }
+
+    // Update the counter of iterations since last continental collision.
+    if(updateHeightAndPlateIndexMaps() == 0)
+    {
+        ++last_coll_count;
+    }
+
+    for (auto& val : plates)
+    {
+        for (const auto& coll : subductions[val->getIndex()])
         {
-            for (auto& val : plates)
-            {
-                val->erode(world_properties::get().getContinental_base());
-             
-            }       
-        }
-                
-        // Update the counter of iterations since last continental collision.
-        if(updateHeightAndPlateIndexMaps() == 0)
-        {
-            ++last_coll_count;
+            ASSERT(val->getIndex() != coll.index, "when subducting: SRC == DEST!");
+
+            // Do not apply friction to oceanic plates.
+            // This is a very cheap way to emulate slab pull.
+            // Just perform subduction and on our way we go!
+
+            val->addCrustBySubduction(
+                coll.point, coll.crust, iter_count,
+              plates[coll.index]->getVelocityVector());
         }
 
-        for (auto& val : plates)
-        {
-            for (const auto& coll : subductions[val->getIndex()])
-            {
-                ASSERT(val->getIndex() != coll.index, "when subducting: SRC == DEST!");
+        subductions[val->getIndex()].clear();
+    }
 
-                // Do not apply friction to oceanic plates.
-                // This is a very cheap way to emulate slab pull.
-                // Just perform subduction and on our way we go!
-                
-                val->addCrustBySubduction(
-                    coll.point, coll.crust, iter_count,
-                  plates[coll.index]->getVelocityVector());
+    updateCollisions();
+
+    std::fill(plate_indices_found.begin(), plate_indices_found.end(), 0);
+
+    if(wp.isRegenerate_crust_enable())
+    {
+        auto amapPrt = amap.getData().begin();
+        auto hmapPtr = hmap.getData().begin();
+        std::for_each(imap.getData().begin(),imap.getData().end(),
+        [&](const auto& index) 
+        {
+            if(index >= num_plates) 
+            {
+                *amapPrt = iter_count;
+                *hmapPtr = wp.getOceanic_base() * wp.getBuoyancy_bonus();
             }
+            ++amapPrt;
+            ++hmapPtr;
+        });
 
-            subductions[val->getIndex()].clear();
-        }
-
-        updateCollisions();
-
-        std::fill(plate_indices_found.begin(), plate_indices_found.end(), 0);
-        
-        if(world_properties::get().isRegenerate_crust_enable())
-        {
-            auto amapPrt = amap.getData().begin();
-            auto hmapPtr = hmap.getData().begin();
-            std::for_each(imap.getData().begin(),imap.getData().end(),
-            [&](const auto& index) 
-            {
-                if(index >= num_plates) 
+        uint32_t i = 0;
+        auto prevImapItr = prev_imap.getData().begin();
+        std::for_each(imap.getData().begin(), imap.getData().end(),
+                [&](auto& val)
                 {
-                    *amapPrt = iter_count;
-                    *hmapPtr = world_properties::get().getOceanic_base() * world_properties::get().getBuoyancy_bonus();
-                }
-                ++amapPrt;
-                ++hmapPtr;
-            });
-            
-            uint32_t i = 0;
-            auto prevImapItr = prev_imap.getData().begin();
-            std::for_each(imap.getData().begin(), imap.getData().end(),
-                    [&](auto& val)
+                    if(val >= num_plates)
                     {
-                        if(val >= num_plates)
-                        {
-                            val = *prevImapItr;
-                            if(val < num_plates)
-                            {
-                                plates[val]->setCrust(worldDimension.coordOF(i), world_properties::get().getOceanic_base(),
-                                                  iter_count);
-                            }
-                        }
-                        ++i;
-                        ++prevImapItr;
-                    }
-                    );
-            std::for_each(imap.getData().begin(), imap.getData().end(),
-                    [&](auto& val) {
+                        val = *prevImapItr;
                         if(val < num_plates)
                         {
-                            ++plate_indices_found[val];
+                            plates[val]->setCrust(worldDimension.coordOF(i), wp.getOceanic_base(),
+                                              iter_count);
                         }
-                    });      
-            std::replace_if(hmap.getData().begin(), hmap.getData().end(), [&](const auto& h)
-                    {return h <= 0;},2 * FLT_EPSILON);
-            
-        }
-
-
-        removeEmptyPlates();
-
-
-        // Add some "virginity buoyancy" to all pixels for a visual boost! :)
-        if(world_properties::get().getBuoyancy_bonus() > 0)
-        {
-            auto ageItr = amap.getData().begin();
-            for (auto& val : hmap.getData())
-            {
-                 // Calculate the inverted age of this piece of crust.
-                // Force result to be minimum between inv. age and
-                // max buoyancy bonus age.
-                if(val < world_properties::get().getContinental_base())
-                {
-                    uint32_t crust_age = iter_count - *ageItr;
-                    crust_age = world_properties::get().getMax_buoyancy_age() - crust_age;
-                    if(crust_age <= world_properties::get().getMax_buoyancy_age())
-                    {
-                        val += world_properties::get().getBuoyancy_bonus() *
-                                   world_properties::get().getOceanic_base() * crust_age * (1.f/world_properties::get().getMax_buoyancy_age());  
                     }
+                    ++i;
+                    ++prevImapItr;
                 }
-                ++ageItr;
-            }
-        }
+                );
+        std::for_each(imap.getData().begin(), imap.getData().end(),
+                [&](auto& val) {
+                    if(val < num_plates)
+                    {
+                        ++plate_indices_found[val];
+                    }
+                });      
+        std::replace_if(hmap.getData().begin(), hmap.getData().end(), [&](const auto& h)
+                {return h <= 0;},2 * FLT_EPSILON);
 
-        ++iter_count;
-    } catch (const std::exception& e) {
-        std::string msg = "Problem during update: ";
-        msg = msg + e.what();
-        std::cerr << msg << std::endl;
-        throw std::runtime_error(msg.c_str());
     }
+
+
+    removeEmptyPlates();
+
+
+    // Add some "virginity buoyancy" to all pixels for a visual boost! :)
+    if(wp.getBuoyancy_bonus() > 0)
+    {
+        auto ageItr = amap.getData().begin();
+        for (auto& val : hmap.getData())
+        {
+             // Calculate the inverted age of this piece of crust.
+            // Force result to be minimum between inv. age and
+            // max buoyancy bonus age.
+            if(val < wp.getContinental_base())
+            {
+                uint32_t crust_age = iter_count - *ageItr;
+                crust_age = wp.getMax_buoyancy_age() - crust_age;
+                if(crust_age <= wp.getMax_buoyancy_age())
+                {
+                    val += wp.getBuoyancy_bonus() *
+                               wp.getOceanic_base() * crust_age * (1.f/wp.getMax_buoyancy_age());  
+                }
+            }
+            ++ageItr;
+        }
+    }
+
+    ++iter_count;
+
 }
 
 void lithosphere::restart()
 {
-    try {
+    const uint32_t map_area = worldDimension.getArea();
+    if(wp.getMax_cycles() != 0)
+    {
+        wp.setCycle_count(wp.getCycle_count() +1); // No increment if running for ever.
+        if (wp.getCycle_count() > wp.getMax_cycles())
+            return;
+    }
 
-        const uint32_t map_area = worldDimension.getArea();
-        if(world_properties::get().getMax_cycles() != 0)
+    // Update height map to include all recent changes.
+    hmap.set_all(0);
+    for (auto& pla : plates)
+    {
+        const uint32_t x0 = pla->getLeftAsUint();
+        const uint32_t y0 = pla->getTopAsUint();
+        const uint32_t x1 = x0 + pla->getWidth();
+        const uint32_t y1 = y0 + pla->getHeight();
+
+        const HeightMap& this_map = pla->getHeigthMap();
+        const AgeMap& this_age = pla->getAgeMap();
+
+        // Copy first part of plate onto world map.
+        for (uint32_t y = y0, j = 0; y < y1; ++y)
         {
-            world_properties::get().setCycle_count(world_properties::get().getCycle_count() +1); // No increment if running for ever.
-            if (world_properties::get().getCycle_count() > world_properties::get().getMax_cycles())
-                return;
-        }
+            for (uint32_t x = x0; x < x1; ++x, ++j)
+            {
+                const auto index = worldDimension.normalize(
+                                    Platec::vec2ui(x,y));
 
-        // Update height map to include all recent changes.
-        hmap.set_all(0);
+                const float h0 = hmap[index];
+                const float h1 = this_map[j];
+                const uint32_t a0 = amap[index];
+                const uint32_t a1 =  this_age[j];
+
+                amap[index] = (h0 *a0 +h1 *a1) /(h0 +h1);
+                hmap[index] += this_map[j];
+            }
+        }
+    }
+    // Clear plate array
+    clearPlates();
+
+
+    if(wp.getMax_cycles() == 0) //infinit
+    {
+        return;
+    }
+    
+    if (wp.getCycle_count() < wp.getMax_cycles())
+    {
+        createPlates();
+
+        // Restore the ages of plates' points of crust!
         for (auto& pla : plates)
         {
             const uint32_t x0 = pla->getLeftAsUint();
@@ -739,79 +769,35 @@ void lithosphere::restart()
             const uint32_t x1 = x0 + pla->getWidth();
             const uint32_t y1 = y0 + pla->getHeight();
 
-            const HeightMap& this_map = pla->getHeigthMap();
-            const AgeMap& this_age = pla->getAgeMap();
+            auto this_age = pla->getAgeMap().getData().begin();
 
-            // Copy first part of plate onto world map.
-            for (uint32_t y = y0, j = 0; y < y1; ++y)
+            for (uint32_t y = y0; y < y1; ++y)
             {
-                for (uint32_t x = x0; x < x1; ++x, ++j)
+                for (uint32_t x = x0; x < x1; ++x)
                 {
-                    const auto index = worldDimension.normalize(
-                                        Platec::vec2ui(x,y));
-
-                    const float h0 = hmap[index];
-                    const float h1 = this_map[j];
-                    const uint32_t a0 = amap[index];
-                    const uint32_t a1 =  this_age[j];
-
-                    amap[index] = (h0 *a0 +h1 *a1) /(h0 +h1);
-                    hmap[index] += this_map[j];
+                    *this_age = amap[worldDimension.normalize(Platec::vec2ui(x,y))];
+                    ++this_age;
                 }
             }
         }
-        // Clear plate array
-        clearPlates();
 
-        // create new plates IFF there are cycles left to run!
-        // However, if max cycle count is "ETERNITY", then 0 < 0 + 1 always.
-        
-        if (world_properties::get().getCycle_count() < world_properties::get().getMax_cycles() + !world_properties::get().getMax_cycles())
+        return;
+    }
+
+    // Add some "virginity buoyancy" to all pixels for a visual boost.
+    if(wp.getBuoyancy_bonus() > 0)
+    {
+        for (uint32_t i = 0; i <  map_area; ++i)
         {
-            createPlates();
-
-            // Restore the ages of plates' points of crust!
-            for (auto& pla : plates)
+            if(hmap[i] < wp.getContinental_base())
             {
-                const uint32_t x0 = pla->getLeftAsUint();
-                const uint32_t y0 = pla->getTopAsUint();
-                const uint32_t x1 = x0 + pla->getWidth();
-                const uint32_t y1 = y0 + pla->getHeight();
-                
-                auto this_age = pla->getAgeMap().getData().begin();
-
-                for (uint32_t y = y0; y < y1; ++y)
-                {
-                    for (uint32_t x = x0; x < x1; ++x)
-                    {
-                        *this_age = amap[worldDimension.normalize(Platec::vec2ui(x,y))];
-                        ++this_age;
-                    }
-                }
-            }
-
-            return;
-        }
-
-        // Add some "virginity buoyancy" to all pixels for a visual boost.
-        if(world_properties::get().getBuoyancy_bonus() > 0)
-        {
-            for (uint32_t i = 0; i <  map_area; ++i)
-            {
-                if(hmap[i] < world_properties::get().getContinental_base())
-                {
-                    uint32_t crust_age = iter_count - amap[i];
-                    crust_age = world_properties::get().getMax_buoyancy_age() - crust_age;
-                    crust_age &= -(crust_age <= world_properties::get().getMax_buoyancy_age());
-                    hmap[i] += world_properties::get().getBuoyancy_bonus() *
-                               world_properties::get().getOceanic_base() * crust_age * (1.f/world_properties::get().getMax_buoyancy_age());
-                }
+                uint32_t crust_age = iter_count - amap[i];
+                crust_age = wp.getMax_buoyancy_age() - crust_age;
+                crust_age &= -(crust_age <= wp.getMax_buoyancy_age());
+                hmap[i] += wp.getBuoyancy_bonus() *
+                           wp.getOceanic_base() * crust_age * (1.f/wp.getMax_buoyancy_age());
             }
         }
-    } catch (const std::exception& e) {
-        std::string msg = "Problem during restart: ";
-        msg = msg + e.what();
-        throw std::runtime_error(msg.c_str());
     }
 }
 
