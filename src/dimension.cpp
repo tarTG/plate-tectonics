@@ -110,7 +110,7 @@ Platec::vec2ui Dimension::yMod
 
 Platec::vec2ui Dimension::pointMod
                         (const Platec::vec2ui& point) const {
-    return Platec::vec2ui(xMod(point.x()), yMod(point.y()));
+   return Platec::vec2ui(xMod(point.x()), yMod(point.y()));
 }
 
 

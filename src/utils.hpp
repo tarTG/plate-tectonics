@@ -37,12 +37,6 @@ typedef INT32 int32_t;
 #define UINT32_C(val) val##ui32
 #endif
 
-namespace Platec {
-
-std::string to_string(uint32_t value);
-std::string to_string_f(float value);
-
-}
 
 // MK: I strongly feel that a release build should have this disabled,
 // but I'm keeping it here because that is the wishes of FT

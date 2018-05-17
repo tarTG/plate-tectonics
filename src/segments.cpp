@@ -34,7 +34,10 @@ uint32_t Segments::getArea() const
 void Segments::reset()
 {
     seg_data.clear();
-    std::vector<uint32_t>(area,std::numeric_limits<uint32_t>::max()).swap(segment);
+    for(auto& val : segment)
+    {
+        val = std::numeric_limits<ContinentId>::max();
+    }
 }
 
 void Segments::reassign(const uint32_t newarea,const std::vector<uint32_t>& tmps)
@@ -67,7 +70,7 @@ ISegmentData& Segments::getSegmentData(uint32_t index)
 }
 
 void Segments::add(const SegmentData& data) {
-    seg_data.emplace_back(data);
+    seg_data.push_back(data);
 }
 
 ContinentId Segments::getContinentAt(const Platec::vec2ui& point,

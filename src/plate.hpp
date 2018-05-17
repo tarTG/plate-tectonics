@@ -36,6 +36,7 @@
 #include "movement.hpp"
 #include "mass.hpp"
 #include "segments.hpp"
+#include "world_properties.h"
 
 class IPlate : public IMass, public IMovement
 {
@@ -100,7 +101,8 @@ public:
 class plate : public IPlate
 {
 private:
-    const Dimension& worldDimension;    
+    const Dimension& worldDimension;  
+    world_properties& wp;    
     SimpleRandom randsource;
     HeightMap map;        ///< Bitmap of plate's structure/height.
     AgeMap age_map;       ///< Bitmap of plate's soil's age: timestamp of creation.

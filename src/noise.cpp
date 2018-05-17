@@ -136,7 +136,7 @@ void createNoise(float* tmp, const Dimension& tmpDim, SimpleRandom randsource, b
         }
     } catch (const std::exception& e) {
         std::string msg = "Problem during lithosphere::createNoise, tmpDim+=";
-        msg = msg + Platec::to_string(tmpDim.getWidth()) + "x" + Platec::to_string(tmpDim.getHeight()) + " ";
+        msg = msg + std::to_string(tmpDim.getWidth()) + "x" + std::to_string(tmpDim.getHeight()) + " ";
         msg = msg + e.what();
         throw std::runtime_error(msg.c_str());
     }

@@ -54,7 +54,11 @@ public:
     }    
 
     void set_all(const Value value) {
-        std::vector<Value>(data.size(),value).swap(data);
+   //     std::vector<Value>(data.size(),value).swap(data);
+        for(auto& d : data)
+        {
+            d = value;
+        }
     }
     
 

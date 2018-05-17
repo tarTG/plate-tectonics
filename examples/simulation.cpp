@@ -3,6 +3,7 @@
 #include "sqrdmd.hpp"
 #include <cstdlib>
 #include "map_drawing.hpp"
+#include "heightmap.hpp"
 #include <stdio.h>
 #include <execinfo.h>
 #include <signal.h>

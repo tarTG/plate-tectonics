@@ -115,10 +115,10 @@ void Bounds::grow(const Platec::vec2ui& delta) {
            "Bounds are larger than the world containing it");
     ASSERT(dimension.getHeight() <= worldDimensions.getHeight(),
            "Bounds taller than the world containing it. delta="
-            + Platec::to_string(delta.y())
+            + std::to_string(delta.y())
            + " resulting plate height="
-            + Platec::to_string(dimension.getHeight())
-           + " world height=" + Platec::to_string(worldDimensions.getHeight()));
+            + std::to_string(dimension.getHeight())
+           + " world height=" + std::to_string(worldDimensions.getHeight()));
 }
 
 

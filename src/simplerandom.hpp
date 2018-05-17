@@ -23,28 +23,25 @@
 #ifndef SIMPLE_RANDOM_HPP
 #define SIMPLE_RANDOM_HPP
 
-#include "utils.hpp"
+#include <random>
 
-typedef struct
-{
-    uint32_t        cong;
-} SimpleRandomCong_t;
 
 
 class SimpleRandom {
 public:
     SimpleRandom(uint32_t seed);
-    SimpleRandom(const SimpleRandom& other);
-    ~SimpleRandom();
     uint32_t next();
     int32_t next_signed();
     // Return a random value in [0.0, 1.0]
     double next_double();
     // Return a random value in [-0.5f, 0.5f]
     float next_float_signed();
-    uint32_t maximum();
 private:
-    SimpleRandomCong_t* internal;
+    std::mt19937 rng;
+    std::uniform_int_distribution<uint32_t> uintdist;
+    std::uniform_int_distribution<int32_t> intdist;
+    std::uniform_real_distribution<double> doubledist;
+    std::uniform_real_distribution<float> floatdist;
 };
 
 #endif

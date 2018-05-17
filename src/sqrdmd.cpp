@@ -26,11 +26,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdexcept>
+#include <algorithm>
 #ifdef __MINGW32__ // this is to avoid a problem with the hypot function which is messed up by Python...
 #undef __STRICT_ANSI__
 #endif
 #include "simplerandom.hpp"
-
+#include "utils.hpp"
 #include "sqrdmd.hpp"
 
 using namespace std;
