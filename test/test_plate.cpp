@@ -328,7 +328,7 @@ public:
             return *_data;
         } else {
             throw std::runtime_error(std::string("(MockSegments2::operator[]) Unexpected call with id "
-                                       + Platec::to_string(id)));
+                                       + std::to_string(id)));
         }
     }
     virtual void add(const SegmentData& data) {
@@ -339,24 +339,24 @@ public:
         if (_index == index) return _id;
         throw std::runtime_error(
             std::string("(MockSegments2::id) Unexpected value ")
-            + Platec::to_string(index)
+            + std::to_string(index)
             + " expected was "
-            + Platec::to_string(_index));
+            + std::to_string(_index));
     }
     virtual ContinentId& id(uint32_t index) {
         if (_index == index) return _id;
         throw std::runtime_error(
             std::string("(MockSegments2::id) Unexpected value ")
-            + Platec::to_string(index)
+            + std::to_string(index)
             + " expected was "
-            + Platec::to_string(_index));
+            + std::to_string(_index));
     }
     virtual void setId(uint32_t index, ContinentId id) {
         if (_index == index) {
             _id = id;
         } else {
             throw std::runtime_error(std::string("(MockSegments2::setId) Unexpected call with index ")
-                                + Platec::to_string(index));
+                                + std::to_string(index));
         }
     }
     virtual ContinentId getContinentAt(const Platec::vec2ui& point,
