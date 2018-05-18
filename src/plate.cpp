@@ -243,7 +243,7 @@ void plate::collide(plate& p,const float_t coll_mass)
 const surroundingPoints plate::calculateCrust(const uint32_t index) const
 {
     const auto& position = bounds->getDimension().coordOF(index);
-    const auto& position_world = worldDimension.pointMod(position);
+    const auto& position_world = worldDimension.normalize(position);
     const auto height = map.get(index);
     auto ret = surroundingPoints();
 

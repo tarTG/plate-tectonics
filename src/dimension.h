@@ -55,10 +55,8 @@ public:
     Platec::vec2ui xMod(const Platec::vec2ui& point) const;
     uint32_t yMod(const uint32_t y) const;
     Platec::vec2ui yMod(const Platec::vec2ui& point) const;
-    Platec::vec2ui pointMod(const Platec::vec2ui& point) const;
     Platec::vec2ui  normalize(const Platec::vec2ui& point) const;
     uint32_t lineIndex(const uint32_t y) const;
-    uint32_t normalizedIndexOf(const Platec::vec2ui& point) const; 
     uint32_t xCap(const uint32_t x) const;
     Platec::vec2ui xCap(const Platec::vec2ui& point) const;
     uint32_t yCap(const uint32_t y) const;

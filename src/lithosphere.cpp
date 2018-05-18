@@ -285,7 +285,7 @@ void lithosphere::createPlates()
         {
             for (uint32_t x = x0; x < x1; ++x) 
             {
-                auto k = wp.getWorldDimension().pointMod(Platec::vec2ui(x, y));
+                auto k = wp.getWorldDimension().normalize(Platec::vec2ui(x, y));
                 if(imap[k] == i)
                 {
                     *pmapItr = hmap[k];
@@ -398,7 +398,7 @@ uint32_t lithosphere::updateHeightAndPlateIndexMaps()
             {
                 if (*this_map < 2 * FLT_EPSILON) // No crust here...
                     continue;
-                const auto p = wp.getWorldDimension().pointMod(Platec::vec2ui(x, y));
+                const auto p = wp.getWorldDimension().normalize(Platec::vec2ui(x, y));
 
                 if (imap[p] >= num_plates) // No one here yet?
                 {
