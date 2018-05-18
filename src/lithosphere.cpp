@@ -296,7 +296,7 @@ void lithosphere::createPlates()
         // Create plate.
         const Dimension plaDim(width, height);
         plates[i] = std::make_unique<plate>(_randsource.next(), HeightMap(std::move(pmap),plaDim)
-                    , plaDim, Platec::vec2f(x0, y0), i);
+                    , plaDim, Platec::vec2f(static_cast<float_t>(x0), static_cast<float_t>(y0)), i);
     }
 
     iter_count = num_plates + wp.getMax_buoyancy_age();
@@ -347,7 +347,7 @@ void lithosphere::resolveJuxtapositions(std::unique_ptr<plate>& pla, const uint3
 
         // And take some.
         pla->setCrust(p, mapValue *
-                            (1.0 - wp.getFolding_ratio()), ageMapValue);
+                            (1.f - wp.getFolding_ratio()), ageMapValue);
 
         // Add collision to the earlier plate's list.
         collisions[pla->getIndex()].push_back(coll);
@@ -360,7 +360,7 @@ void lithosphere::resolveJuxtapositions(std::unique_ptr<plate>& pla, const uint3
         pla->setCrust(p,mapValue+coll.crust, amap[p]);
 
         plates[imap[p]]->setCrust(p, hmap[p]
-                                  * (1.0 - wp.getFolding_ratio()), amap[p]);
+                                  * (1.f - wp.getFolding_ratio()), amap[p]);
 
         collisions[imap[p]].emplace_back(coll);
         // Give the location to the larger plate.
@@ -755,7 +755,7 @@ void lithosphere::restart()
                 const uint32_t a0 = amap[index];
                 const uint32_t a1 =  this_age[j];
 
-                amap[index] = (h0 *a0 +h1 *a1) /(h0 +h1);
+                amap[index] = static_cast<uint32_t>((h0 *a0 +h1 *a1) /(h0 +h1));
                 hmap[index] += this_map[j];
             }
         }

@@ -135,14 +135,16 @@ void plate::addCrustBySubduction(const Platec::vec2ui& originPoint,const float_t
     
     //What the hell are we doing here? Why have we to calculete 10 * x +3 ????
     auto offset =std::pow((float_t)randsource.next_double(),3);
-     offset = std::copysign(offset,  2 * (int)(randsource.next() % 2) - 1); 
+     offset = std::copysignf(offset,  2 * (int)(randsource.next() % 2) - 1); 
     
-    auto offset2 =std::copysign(std::pow((float_t)randsource.next_double(),3),
+    auto offset2 =std::copysignf(std::pow((float_t)randsource.next_double(),3),
                                                     randsource.next_signed()); 
     
-    dotDir = Platec::vec2f(10 * dotDir.x() + 3 * offset,10 * dotDir.y() + 3 * offset2);
+    auto dotDir2 = Platec::vec2ui(
+        static_cast<uint32_t>(10 * dotDir.x() + 3 * offset),
+        static_cast<uint32_t>(10 * dotDir.y() + 3 * offset2));
 
-    const auto p =  Platec::vec2ui(dotDir.x(),dotDir.y()) + bounds->getValidMapIndex(originPoint).second; 
+    const auto p =  dotDir2 + bounds->getValidMapIndex(originPoint).second; 
     if (bounds->isInLimits(p) )
     {
         
@@ -150,7 +152,7 @@ void plate::addCrustBySubduction(const Platec::vec2ui& originPoint,const float_t
         auto mapItr = map.getData().begin() + tmpindex;
         auto ageMapItr = age_map.getData().begin() + tmpindex;
 
-        if (*mapItr > 0 )
+        if (*mapItr > 0.f )
         {
 
             *ageMapItr = ((*mapItr) * (*ageMapItr) + sediment * time) / ((*mapItr) + sediment);
@@ -381,7 +383,7 @@ void plate::erode(float lower_bound)
     {
         for(auto& val : map.getData())
         {
-            val *= wp.getNoise_strength() - (0.2* (float)randsource.next_double());
+            val *= wp.getNoise_strength() - (0.2f* (float)randsource.next_double());
         }
     }
 
@@ -606,7 +608,7 @@ void plate::setCrust(const Platec::vec2ui& point, float_t z, uint32_t t)
         const auto old_width  = bounds->width();
         const auto old_height = bounds->height();
 
-        bounds->shift(Platec::vec2f(-1.0*d_lft, -1.0*d_top));
+        bounds->shift(Platec::vec2f(-1.0f*d_lft, -1.0f*d_top));
         bounds->grow(Platec::vec2ui(d_lft + d_rgt, d_top + d_btm));
 
         auto tmph = HeightMap(bounds->getDimension());
