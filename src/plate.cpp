@@ -134,11 +134,11 @@ void plate::addCrustBySubduction(const Platec::vec2ui& originPoint,const float_t
     }
     
     //What the hell are we doing here? Why have we to calculete 10 * x +3 ????
-    auto offset =std::pow((float_t)randsource.next_double(),3);
-     offset = std::copysignf(offset,  2 * (int)(randsource.next() % 2) - 1); 
+    auto offset =std::pow(randsource.next_float(),3.f);
+     offset = std::copysignf(offset,  2.f * static_cast<float>(randsource.next() % 2) - 1.f); 
     
-    auto offset2 =std::copysignf(std::pow((float_t)randsource.next_double(),3),
-                                                    randsource.next_signed()); 
+    auto offset2 =std::copysignf(std::pow(randsource.next_float(),3.f),
+                                                    static_cast<float>(randsource.next_signed())); 
     
     auto dotDir2 = Platec::vec2ui(
         static_cast<uint32_t>(10 * dotDir.x() + 3 * offset),
@@ -383,7 +383,7 @@ void plate::erode(float lower_bound)
     {
         for(auto& val : map.getData())
         {
-            val *= wp.getNoise_strength() - (0.2f* (float)randsource.next_double());
+            val *= wp.getNoise_strength() - (0.2f* randsource.next_float());
         }
     }
 

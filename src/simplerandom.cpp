@@ -34,7 +34,7 @@ SimpleRandom::SimpleRandom(uint32_t seed)
     rng = std::mt19937(seed);
     uintdist =  std::uniform_int_distribution<uint32_t>(std::numeric_limits<uint32_t>::min(),std::numeric_limits<uint32_t>::max() );
     intdist = std::uniform_int_distribution<int32_t>(std::numeric_limits<int32_t>::min(),std::numeric_limits<int32_t>::max());
-    doubledist = std::uniform_real_distribution<double>(0.0, 1.0);
+    doubledist = std::uniform_real_distribution<float>(0.0f, 1.0f);
     floatdist = std::uniform_real_distribution<float>(-0.5f, 0.5f);    
 }
 
@@ -45,7 +45,7 @@ uint32_t SimpleRandom::next()
     return uintdist(rng);
 }
 
-double SimpleRandom::next_double()
+float SimpleRandom::next_float()
 {
     return doubledist(rng);
 }
