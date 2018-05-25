@@ -18,7 +18,6 @@
 *****************************************************************************/
 
 #include <complex>
-#include <math.h>
 
 #include "movement.hpp"
 #include "plate.hpp"
@@ -26,7 +25,7 @@
 
 // Missing on Windows
 #ifndef M_PI
-#define M_PIf32 3.141592654f
+#define M_PI 3.141592654f
 #endif
 
 Movement::Movement(SimpleRandom randsource)
@@ -34,7 +33,7 @@ Movement::Movement(SimpleRandom randsource)
       velocity(1.0),
       rotDir(randsource.next() % 2 ? 1 : -1)
 {
-    const float angle = 2.0f * M_PIf32 * randSource.next_float();
+    const float angle = 2.0f * static_cast<float>(M_PI) * randSource.next_float();
     velVec = Platec::vec2f(cosf(angle),sinf(angle));
 }
 

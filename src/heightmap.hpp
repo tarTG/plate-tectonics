@@ -46,7 +46,7 @@ public:
         : data(dataVal), dimension(width, height) {
     }
     
-    Matrix(const Dimension& dim) : data(dim.getArea(),0.0), dimension(dim) {
+    Matrix(const Dimension& dim) : data(dim.getArea(),static_cast<Value>(0)), dimension(dim) {
     }
     
     Matrix(const std::vector<Value>& dataVal,const Dimension& dim)

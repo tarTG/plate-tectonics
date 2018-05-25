@@ -216,7 +216,7 @@ public:
     /// @param  wy  Y coordinate of collision point on world map.
     /// @param[in, out] count Destination for the count of collisions.
     /// @param[in, out] count Destination for the % of area that collided.
-    const std::pair<uint32_t,float_t> getCollisionInfo(const Platec::vec2ui& point) const;
+    const std::pair<uint32_t,uint32_t> getCollisionInfo(const Platec::vec2ui& point) const;
 
     /// Retrieve the surface area of continent lying at desired location.
     ///

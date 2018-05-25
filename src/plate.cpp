@@ -155,7 +155,7 @@ void plate::addCrustBySubduction(const Platec::vec2ui& originPoint,const float_t
         if (*mapItr > 0.f )
         {
 
-            *ageMapItr = ((*mapItr) * (*ageMapItr) + sediment * time) / ((*mapItr) + sediment);
+            *ageMapItr = static_cast<uint32_t>(((*mapItr) * (*ageMapItr) + sediment * time) / ((*mapItr) + sediment));
 
             (*mapItr) += sediment;
             mass.incMass(sediment);
@@ -500,7 +500,7 @@ void plate::erode(float lower_bound)
 
 }
 
-const std::pair<uint32_t,float_t> plate::getCollisionInfo(const Platec::vec2ui& point) const
+const std::pair<uint32_t,uint32_t> plate::getCollisionInfo(const Platec::vec2ui& point) const
 {
     const ISegmentData& seg = getContinentAt(point);
 
@@ -508,7 +508,7 @@ const std::pair<uint32_t,float_t> plate::getCollisionInfo(const Platec::vec2ui& 
     {
         return  std::make_pair(seg.collCount(),seg.collCount());
     }
-    return std::make_pair(seg.collCount(),seg.collCount() /(float_t)(seg.getArea()));
+    return std::make_pair(seg.collCount(),seg.collCount() /(seg.getArea()));
 
 
 }
