@@ -33,14 +33,14 @@ public:
     uint32_t next();
     int32_t next_signed();
     // Return a random value in [0.0, 1.0]
-    double next_double();
+    float next_float();
     // Return a random value in [-0.5f, 0.5f]
     float next_float_signed();
 private:
     std::mt19937 rng;
     std::uniform_int_distribution<uint32_t> uintdist;
     std::uniform_int_distribution<int32_t> intdist;
-    std::uniform_real_distribution<double> doubledist;
+    std::uniform_real_distribution<float> doubledist;
     std::uniform_real_distribution<float> floatdist;
 };
 

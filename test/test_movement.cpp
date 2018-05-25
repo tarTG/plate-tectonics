@@ -29,8 +29,8 @@ TEST(Movement, Constructor)
     SimpleRandom sr(123);
     Dimension wd(5, 4);
     Movement mov(sr);
-    EXPECT_FLOAT_EQ(-0.23066252f, mov.velocityUnitVector().x());
-    EXPECT_FLOAT_EQ(-0.97303379f, mov.velocityUnitVector().y());
+    EXPECT_FLOAT_EQ(-0.33003792f, mov.velocityUnitVector().x());
+    EXPECT_FLOAT_EQ(-0.9439677f, mov.velocityUnitVector().y());
     EXPECT_FLOAT_EQ(1.0f, mov.getVelocity());
 }
 
@@ -40,12 +40,12 @@ TEST(Movement, ApplyFriction)
     Dimension wd(50, 40);
     Movement mov(sr);
 
-    EXPECT_FLOAT_EQ(0.99249136f, mov.velocityUnitVector().x());
-    EXPECT_FLOAT_EQ(-0.12231477f, mov.velocityUnitVector().y());
+    EXPECT_FLOAT_EQ(0.0078167878f, mov.velocityUnitVector().x());
+    EXPECT_FLOAT_EQ(0.99996942f, mov.velocityUnitVector().y());
 
     mov.applyFriction(2.2f, 10.5f);
-    EXPECT_FLOAT_EQ(0.99249136f, mov.velocityUnitVector().x());
-    EXPECT_FLOAT_EQ(-0.12231477f, mov.velocityUnitVector().y());
+    EXPECT_FLOAT_EQ(0.0078167878f, mov.velocityUnitVector().x());
+    EXPECT_FLOAT_EQ(0.99996942, mov.velocityUnitVector().y());
     EXPECT_FLOAT_EQ(0.58095241f, mov.getVelocity());
 
     mov.applyFriction(7.2f, 0.0f);
@@ -68,13 +68,13 @@ TEST(Movement, Move)
     Dimension wd(500, 400);
     Movement mov(sr);
 
-    EXPECT_FLOAT_EQ(0.97842747f, mov.velocityUnitVector().x());
-    EXPECT_FLOAT_EQ(-0.20659068f, mov.velocityUnitVector().y());
+    EXPECT_FLOAT_EQ(-0.98402524f, mov.velocityUnitVector().x());
+    EXPECT_FLOAT_EQ(-0.17802897f, mov.velocityUnitVector().y());
     EXPECT_FLOAT_EQ(1.0f, mov.getVelocity());
 
     mov.move(wd);
-    EXPECT_FLOAT_EQ(0.97701412f, mov.velocityUnitVector().x());
-    EXPECT_FLOAT_EQ(-0.21317469f, mov.velocityUnitVector().y());
+    EXPECT_FLOAT_EQ(-0.98520178f, mov.velocityUnitVector().x());
+    EXPECT_FLOAT_EQ(-0.17139855f, mov.velocityUnitVector().y());
     EXPECT_FLOAT_EQ(1.0f, mov.getVelocity());
 }
 
@@ -84,9 +84,9 @@ TEST(Movement, VelocityOnXNoParams)
     Dimension wd(500, 400);
     Movement mov(sr);
 
-    EXPECT_FLOAT_EQ(0.97842747f, mov.velocityUnitVector().x());
+    EXPECT_FLOAT_EQ(-0.98402524f, mov.velocityUnitVector().x());
     EXPECT_FLOAT_EQ(1.0f, mov.getVelocity());
-    EXPECT_FLOAT_EQ(0.97842747f, mov.velocityUnitVector().x());
+    EXPECT_FLOAT_EQ(-0.98402524f, mov.velocityUnitVector().x());
 }
 
 TEST(Movement, VelocityOnYNoParams)
@@ -95,9 +95,9 @@ TEST(Movement, VelocityOnYNoParams)
     Dimension wd(500, 400);
     Movement mov(sr);
 
-    EXPECT_FLOAT_EQ(-0.20659068f, mov.velocityUnitVector().y());
+    EXPECT_FLOAT_EQ(-0.17802897f, mov.velocityUnitVector().y());
     EXPECT_FLOAT_EQ(1.0f, mov.getVelocity());
-    EXPECT_FLOAT_EQ(-0.20659068f, mov.velocityVector().y());
+    EXPECT_FLOAT_EQ(-0.17802897f, mov.velocityVector().y());
 }
 
 TEST(Movement, VelocityOnXOneParam)
@@ -106,9 +106,9 @@ TEST(Movement, VelocityOnXOneParam)
     Dimension wd(500, 400);
     Movement mov(sr);
 
-    EXPECT_FLOAT_EQ(0.97842747f, mov.velocityUnitVector().x());
+    EXPECT_FLOAT_EQ(-0.98402524f, mov.velocityUnitVector().x());
     EXPECT_FLOAT_EQ(1.0f, mov.getVelocity());
-    EXPECT_FLOAT_EQ(9.7842751f, mov.velocityOn(10.0).x());
+    EXPECT_FLOAT_EQ(-9.8402519f, mov.velocityOn(10.0).x());
 }
 
 TEST(Movement, VelocityOnYOneParam)
@@ -117,9 +117,9 @@ TEST(Movement, VelocityOnYOneParam)
     Dimension wd(500, 400);
     Movement mov(sr);
 
-    EXPECT_FLOAT_EQ(-0.20659068f, mov.velocityUnitVector().y());
+    EXPECT_FLOAT_EQ(-0.17802897f, mov.velocityUnitVector().y());
     EXPECT_FLOAT_EQ(1.0f, mov.getVelocity());
-    EXPECT_FLOAT_EQ(-2.0659068f, mov.velocityOn(10.0).y());
+    EXPECT_FLOAT_EQ(-1.7802896f, mov.velocityOn(10.0).y());
 }
 
 TEST(Movement, Dot)
@@ -128,9 +128,9 @@ TEST(Movement, Dot)
     Dimension wd(500, 400);
     Movement mov(sr);
 
-    EXPECT_FLOAT_EQ(0.97842747f, mov.velocityUnitVector().x());
-    EXPECT_FLOAT_EQ(-0.20659068f, mov.velocityUnitVector().y());
-    EXPECT_FLOAT_EQ(1.3370829f, mov.dot(Platec::vec2f(2.f, 3.f)));
+    EXPECT_FLOAT_EQ(-0.98402524f, mov.velocityUnitVector().x());
+    EXPECT_FLOAT_EQ(-0.17802897f, mov.velocityUnitVector().y());
+    EXPECT_FLOAT_EQ(-2.5021374f, mov.dot(Platec::vec2f(2.f, 3.f)));
 }
 
 class MockPlate : public IPlate {
@@ -174,8 +174,8 @@ TEST(Movement, Collide)
     Dimension wd(500, 400);
     Movement mov(sr);
 
-    EXPECT_FLOAT_EQ(0.97842747f, mov.velocityVector().x());
-    EXPECT_FLOAT_EQ(-0.20659068f, mov.velocityVector().y());
+    EXPECT_FLOAT_EQ(-0.98402524f, mov.velocityVector().x());
+    EXPECT_FLOAT_EQ(-0.17802897f, mov.velocityVector().y());
     EXPECT_FLOAT_EQ(1.0f, mov.getVelocity());
 
     Mass thisMass(100.0, Platec::vec2f(70.0, 90.0));
@@ -185,6 +185,6 @@ TEST(Movement, Collide)
     MockPlate otherPlate(otherPlateVelocityUnitVector, otherPlateMass, otherPlateMassCenter);
     mov.collide(thisMass, otherPlate, 456.2f);
 
-    EXPECT_FLOAT_EQ(-0.0035528636f, otherPlate.decImpulseDelta().x());
-    EXPECT_FLOAT_EQ(-0.036712926f, otherPlate.decImpulseDelta().y());
+    EXPECT_FLOAT_EQ(-0.0029073642f, otherPlate.decImpulseDelta().x());
+    EXPECT_FLOAT_EQ(-0.030042764f, otherPlate.decImpulseDelta().y());
 }

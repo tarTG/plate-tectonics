@@ -77,7 +77,7 @@ public:
 private:
     world_properties();
     //set Default values
-    Dimension worldDimension = Dimension(0.0,0.0);
+    Dimension worldDimension = Dimension(0,0);
     uint32_t aggr_overlap_abs = 0u; ///< # of overlapping pixels -> aggregation.
     float_t  aggr_overlap_rel = 0.f; ///< % of overlapping area -> aggregation.
     uint32_t cycle_count = 0u; ///< Number of times the system's been restarted.

@@ -61,15 +61,19 @@ TEST(Noise, SimplexNoiseRepeatability)
     float *heightmap = new float[wd.getArea()];
     initializeHeightmapWithNoise(123, heightmap, wd);
 
-    EXPECT_FLOAT_EQ(0.44932926f, heightmap[0]);
-    EXPECT_FLOAT_EQ(0.44715038f, heightmap[1000]);
-    EXPECT_FLOAT_EQ(0.62656903f, heightmap[2000]);
-    EXPECT_FLOAT_EQ(0.57531285f, heightmap[5000]);
-    EXPECT_FLOAT_EQ(0.61572498f, heightmap[8000]);
-    EXPECT_FLOAT_EQ(0.57263851f, heightmap[11000]);
-    EXPECT_FLOAT_EQ(0.46816963f, heightmap[13000]);
+    float *heightmap2 = new float[wd.getArea()];
+    initializeHeightmapWithNoise(123, heightmap2, wd);
+    
+    EXPECT_FLOAT_EQ(heightmap2[0], heightmap[0]);
+    EXPECT_FLOAT_EQ(heightmap2[1000], heightmap[1000]);
+    EXPECT_FLOAT_EQ(heightmap2[2000], heightmap[2000]);
+    EXPECT_FLOAT_EQ(heightmap2[5000], heightmap[5000]);
+    EXPECT_FLOAT_EQ(heightmap2[8000], heightmap[8000]);
+    EXPECT_FLOAT_EQ(heightmap2[11000], heightmap[11000]);
+    EXPECT_FLOAT_EQ(heightmap2[13000], heightmap[13000]);
 
     delete[] heightmap;
+    delete[] heightmap2;
 }
 
 TEST(CreatePlate, SquareDoesNotExplode)

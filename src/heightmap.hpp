@@ -38,7 +38,7 @@ private:
 public:
     
     Matrix(const uint32_t width,const uint32_t height)
-        : data(width*height,0.0), dimension(width, height)  {
+        : data(width*height,static_cast<Value>(0)), dimension(width, height)  {
     }
 
     Matrix(const std::vector<Value>& dataVal,
@@ -46,7 +46,7 @@ public:
         : data(dataVal), dimension(width, height) {
     }
     
-    Matrix(const Dimension& dim) : data(dim.getArea(),0.0), dimension(dim) {
+    Matrix(const Dimension& dim) : data(dim.getArea(),static_cast<Value>(0)), dimension(dim) {
     }
     
     Matrix(const std::vector<Value>& dataVal,const Dimension& dim)
@@ -54,7 +54,6 @@ public:
     }    
 
     void set_all(const Value value) {
-   //     std::vector<Value>(data.size(),value).swap(data);
         for(auto& d : data)
         {
             d = value;

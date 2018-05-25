@@ -244,7 +244,7 @@ std::vector<Span> MySegmentCreator::fillLineWithID(const Span& span,const uint32
                                        const ContinentId ID ) 
 {
     std::vector<Span> ret;
-    ret.reserve(span.end-span.start *0.25); //reserve some Memory. for the worst case we have 4 realocation
+    ret.reserve(static_cast<uint32_t>(span.end-span.start *0.25)); //reserve some Memory. for the worst case we have 4 realocation
     
     for (uint32_t j = span.start; j <= span.end; ++j) {
       if (usablePoint(line + j,ID))

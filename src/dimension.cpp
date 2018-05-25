@@ -108,17 +108,6 @@ Platec::vec2ui Dimension::yMod
     return point;
 }
 
-Platec::vec2ui Dimension::pointMod
-                        (const Platec::vec2ui& point) const {
-   return Platec::vec2ui(xMod(point.x()), yMod(point.y()));
-}
-
-
-uint32_t Dimension::normalizedIndexOf
-                    (const Platec::vec2ui& point) const {
-    return indexOf( pointMod( point));
-}
-
 Platec::vec2ui Dimension::xCap
                         (const Platec::vec2ui& point) const {
     return Platec::vec2ui (std::min(point.x(), getWidth()-1), point.y());
