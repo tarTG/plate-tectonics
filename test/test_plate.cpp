@@ -228,14 +228,14 @@ public:
     virtual uint32_t size() const {
         throw std::runtime_error("(MockSegments::size) Not implemented");
     }
-    virtual const ISegmentData& getSegmentData(uint32_t index) const {
+    virtual const ISegmentData& getSegmentData(const uint32_t index) const override {
         if (index == _id) {
             return *_data;
         } else {
             throw std::runtime_error("(MockSegments::operator[]) Unexpected call");
         }
     }
-    virtual ISegmentData& getSegmentData(uint32_t index) {
+    virtual ISegmentData& getSegmentData(const uint32_t index) override {
         if (index == _id) {
             return *_data;
         } else {
@@ -246,15 +246,15 @@ public:
         (void)data;
         throw std::runtime_error("Not implemented");
     }
-    virtual const ContinentId& id(uint32_t index) const {
+    virtual const ContinentId& id(const uint32_t index) const {
         (void)index;
         throw std::runtime_error("(MockSegments::id) Not implemented");
     }
-    virtual ContinentId& id(uint32_t index) {
+    virtual ContinentId& id(const uint32_t index) {
         (void)index;
         throw std::runtime_error("(MockSegments::id) Not implemented");
     }
-    virtual void setId(uint32_t index, ContinentId id) {
+    virtual void setId(const uint32_t index,const ContinentId id) {
         (void)index;
         (void)id;
         throw std::runtime_error("Not implemented");
@@ -320,14 +320,14 @@ public:
     virtual uint32_t size() const {
         throw std::runtime_error("(MockSegments2::size) Not implemented");
     }
-    virtual const ISegmentData& getSegmentData(uint32_t index) const {
+    virtual const ISegmentData& getSegmentData(const uint32_t index) const {
         if (index == _id) {
             return *_data;
         } else {
             throw std::runtime_error("(MockSegments2::operator[]) Unexpected call");
         }
     }
-    virtual ISegmentData& getSegmentData(uint32_t id) {
+    virtual ISegmentData& getSegmentData(const uint32_t id) {
         if (id == _id) {
             return *_data;
         } else {
@@ -339,7 +339,7 @@ public:
         (void)data;
         throw std::runtime_error("(MockSegments2::add) Not implemented");
     }
-    virtual const ContinentId& id(uint32_t index) const {
+    virtual const ContinentId& id(const uint32_t index) const {
         if (_index == index) return _id;
         throw std::runtime_error(
             std::string("(MockSegments2::id) Unexpected value ")
@@ -347,7 +347,7 @@ public:
             + " expected was "
             + std::to_string(_index));
     }
-    virtual ContinentId& id(uint32_t index) {
+    virtual ContinentId& id(const uint32_t index) {
         if (_index == index) return _id;
         throw std::runtime_error(
             std::string("(MockSegments2::id) Unexpected value ")
@@ -355,7 +355,7 @@ public:
             + " expected was "
             + std::to_string(_index));
     }
-    virtual void setId(uint32_t index, ContinentId id) {
+    virtual void setId(const uint32_t index,const  ContinentId id) {
         if (_index == index) {
             _id = id;
         } else {

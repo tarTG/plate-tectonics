@@ -23,7 +23,7 @@
 
 const Dimension wd(800, 600);
 const Platec::vec2f topLeft(10.2f, 48.9f);
-const Platec::vec2f topLeftWrapping(700.4f, 500.3);
+const Platec::vec2f topLeftWrapping(700.4f, 500.3f);
 const Dimension plateDim(500, 400);
 const Bounds b( topLeft, plateDim);
 const Bounds b2(topLeftWrapping, plateDim);
@@ -105,10 +105,10 @@ TEST(Bounds, IsInLimits) {
     EXPECT_EQ(false, b.isInLimits(Platec::vec2ui(-1, -1)));
 
     EXPECT_EQ(true, b.isInLimits(Platec::vec2ui(0, 0)));
-    EXPECT_EQ(true, b.isInLimits(Platec::vec2ui(124.3f, 245.56f)));
+    EXPECT_EQ(true, b.isInLimits(Platec::vec2ui(124, 245)));
     EXPECT_EQ(true, b.isInLimits(Platec::vec2ui(499, 399)));
-    EXPECT_EQ(true, b.isInLimits(Platec::vec2ui(499.1f, 399.1f)));
-    EXPECT_EQ(true, b.isInLimits(Platec::vec2ui(499.999f, 399.999f)));
+    EXPECT_EQ(true, b.isInLimits(Platec::vec2ui(499, 399)));
+    EXPECT_EQ(true, b.isInLimits(Platec::vec2ui(499, 399)));
 
     EXPECT_EQ(false, b.isInLimits(Platec::vec2ui(500, 399)));
     EXPECT_EQ(false, b.isInLimits(Platec::vec2ui(499, 400)));

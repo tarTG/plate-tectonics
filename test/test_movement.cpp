@@ -45,7 +45,7 @@ TEST(Movement, ApplyFriction)
 
     mov.applyFriction(2.2f, 10.5f);
     EXPECT_FLOAT_EQ(0.0078167878f, mov.velocityUnitVector().x());
-    EXPECT_FLOAT_EQ(0.99996942, mov.velocityUnitVector().y());
+    EXPECT_FLOAT_EQ(0.99996942f, mov.velocityUnitVector().y());
     EXPECT_FLOAT_EQ(0.58095241f, mov.getVelocity());
 
     mov.applyFriction(7.2f, 0.0f);
