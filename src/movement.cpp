@@ -18,6 +18,7 @@
 *****************************************************************************/
 
 #include <complex>
+#include <math.h>
 
 #include "movement.hpp"
 #include "plate.hpp"
